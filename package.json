@@ -1,0 +1,45 @@
+{
+  "name": "ai-project-2025",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^1.1.19",
+    "@ai-sdk/openai": "^1.2.7",
+    "@ai-sdk/react": "^1.1.25",
+    "@aws-sdk/client-s3": "^3.758.0",
+    "@aws-sdk/s3-request-presigner": "^3.758.0",
+    "ai": "^4.1.64",
+    "axios": "^1.8.1",
+    "date-fns": "^4.1.0",
+    "mongoose": "^8.11.0",
+    "next": "15.2.0",
+    "openai": "^4.86.1",
+    "pdf-parse": "^1.1.1",
+    "pino": "^9.6.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "uuidv4": "^6.2.13"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/pdf-parse": "^1.1.4",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.2.0",
+    "prettier": "^3.5.2",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  },
+  "comments": {
+    "pdf-parsing": "pdf-parse has known issues with ES modules and maintenance. Consider alternatives like pdf-lib, pdf.js-extract, or pdfjs-dist for more robust PDF handling in future updates."
+  }
+}
