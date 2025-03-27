@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import logger from '@/server/config/pino-config'
 import { defaultAgent } from '@/server/features/agents'
-export const maxDuration = 120
+export const maxDuration = 60
 
 /**
  * POST handler for chat API
