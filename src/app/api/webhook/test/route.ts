@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     ]
 
     // Process the request using DefaultAgent
-    const response = await processChatRequest(messages,'IFTA2024', conversationId)
+    const response = await processChatRequest(messages,'Peace-Academy', conversationId)
     
     console.log(conversationId)
      
