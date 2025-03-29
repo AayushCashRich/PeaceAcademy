@@ -6,34 +6,43 @@ import logger from '@/server/config/pino-config'
 // POST - Generate a presigned URL for S3 file upload
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    
+    const contentType = req.headers.get('content-type') || ''
+    if (!contentType.includes('multipart/form-data')) {
+      return NextResponse.json(
+        { error: 'Unsupported content type' },
+        { status: 400 }
+      )
+    }
+
+    const formData = await req.formData()
+    const knowledgeBaseCode = formData.get('knowledge_base_code') || formData.get('knowledgeBaseCode')
+    const fileName = formData.get('file_name') || formData.get('fileName')
+    const file = formData.get('file')
+
     // Basic validation
-    if (!body.knowledge_base_code && !body.knowledgeBaseCode || !body.file_name && !body.fileName || !body.file) {
+    if (!knowledgeBaseCode || !fileName || !file) {
       return NextResponse.json(
         { error: 'Knowledge base code and file name are required' },
         { status: 400 }
       )
     }
-    
-    // Allow for both camelCase and snake_case in request for backward compatibility
-    const knowledgeBaseCode = body.knowledge_base_code || body.knowledgeBaseCode
-    const fileName = body.file_name || body.fileName
-    const file = body.file
     // Validate file name (must be PDF)
-    if (!fileName.toLowerCase().endsWith('.pdf')) {
+    if (!(fileName as string).toLowerCase().endsWith('.pdf')) {
       return NextResponse.json(
         { error: 'Only PDF files are supported' },
         { status: 400 }
       )
     }
-
     // Generate the presigned URL
-    const urlData = await getPresignedUploadUrl(knowledgeBaseCode, fileName,file)
-    
+    const urlData = await getPresignedUploadUrl(
+      knowledgeBaseCode as string,
+      fileName as string,
+      file as File
+    )
+
     // Parse the JSON string returned from getPresignedUploadUrl
     const { file_url } = JSON.parse(urlData)
-    
+
     return NextResponse.json({ file_url })
   } catch (error) {
     logger.error({ error }, 'Failed to generate presigned URL')

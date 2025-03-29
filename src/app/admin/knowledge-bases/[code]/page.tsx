@@ -124,6 +124,9 @@ export default function KnowledgeBaseDashboardPage() {
       formData.append("file", file);
       const presignedUrlResponse = await fetch('/api/admin/presigned-url', {
         method: 'POST',
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        },
         body: formData
       })
 
