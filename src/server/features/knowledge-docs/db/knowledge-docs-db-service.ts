@@ -5,7 +5,7 @@ import logger from '@/server/config/pino-config'
 export interface CreateKnowledgeDocInput {
   knowledge_base_code: string
   file_name: string
-  s3_url: string
+  file_url: string
   user_id?: string
   file_size: number
   status?: 'pending' | 'processed' | 'error'

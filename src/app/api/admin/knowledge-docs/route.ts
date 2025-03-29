@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     
     // Basic validation - look for snake_case field names
-    if (!body.knowledge_base_code || !body.file_name || !body.s3_url || !body.file_size) {
+    if (!body.knowledge_base_code || !body.file_name || !body.file_url || !body.file_size) {
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     const newDocument = await knowledgeDocumentDbService.createDocument({
       knowledge_base_code: body.knowledge_base_code,
       file_name: body.file_name,
-      s3_url: body.s3_url,
+      file_url: body.file_url,
       user_id: body.user_id || 'admin',
       file_size: body.file_size,
       status: body.status || 'pending'
