@@ -19,12 +19,11 @@ export async function getPresignedUploadUrl(knowledgeBaseCode: string, fileName:
   try {
     const fileP = bucket.file(filePath);
 
-    await fileP.save(new Uint8Array(await file.arrayBuffer()), {
-          metadata: {
-              contentType: file.type
-          }
-      });
-      
+    await fileP.save(Buffer.from(await file.arrayBuffer()), {
+      metadata: {
+        contentType: 'application/pdf'
+      }
+    });
     // Generate a signed URL for uploading with a 15-minute expiry
     const [url] = await fileP.getSignedUrl({
         action: 'write',
