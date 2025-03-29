@@ -122,7 +122,7 @@ Retrieves all documents for a specific knowledge base.
     id: string,
     knowledge_base_code: string,
     file_name: string,
-    s3_url: string,
+    file_url: string,
     status: 'processing' | 'processed' | 'failed',
     uploaded_at: string,
     updated_at: string
@@ -148,7 +148,7 @@ Uploads a new document to a knowledge base.
     id: string,
     knowledge_base_code: string,
     file_name: string,
-    s3_url: string,
+    file_url: string,
     status: 'processing',
     uploaded_at: string
   }

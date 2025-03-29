@@ -41,7 +41,7 @@ interface KnowledgeDocument {
   knowledge_base_code: string  // Foreign key to knowledge_bases.code
   file_name: string            // Original filename of uploaded document
   file_type: string            // MIME type or file extension
-  s3_url: string               // Location in S3 storage
+  file_url: string               // Location in S3 storage
   file_size_bytes: number      // Size of file in bytes
   status: 'processing' | 'processed' | 'failed'  // Processing status
   error_message?: string       // Error message if processing failed

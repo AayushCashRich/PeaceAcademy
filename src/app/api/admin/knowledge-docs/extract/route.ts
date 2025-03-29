@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     
     try {
       // Extract text chunks from the PDF
-      const chunks = await pdfChunkExtractor.extractChunks(document.s3_url)
+      const chunks = await pdfChunkExtractor.extractChunks(document.file_url)
       
       logger.info(
         { documentId, chunkCount: chunks.length },

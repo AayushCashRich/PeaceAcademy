@@ -48,7 +48,7 @@ A KnowledgeDocument represents a single piece of content (e.g., PDF, text file) 
 - **id**: Unique identifier for the document
 - **knowledge_base_code**: The code of the parent KnowledgeBase
 - **file_name**: Original name of the uploaded file
-- **s3_url**: Location of the file in S3 storage
+- **file_url**: Location of the file in S3 storage
 - **status**: Current processing status of the document
 - **uploaded_at**: Timestamp of when the document was uploaded
 - Additional metadata as needed
