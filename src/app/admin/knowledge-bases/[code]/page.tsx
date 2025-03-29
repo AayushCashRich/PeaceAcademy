@@ -91,8 +91,6 @@ export default function KnowledgeBaseDashboardPage() {
     else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB'
     else return (bytes / 1048576).toFixed(1) + ' MB'
   }
-
-  // Handle file selection
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
@@ -118,16 +116,15 @@ export default function KnowledgeBaseDashboardPage() {
 
     try {
       // Step 1: Get presigned URL
-      const formData = new FormData();
-      formData.append("knowledge_base_code", knowledgeBaseCode);
-      formData.append("file_name", file.name);
-      formData.append("file", file);
       const presignedUrlResponse = await fetch('/api/admin/presigned-url', {
         method: 'POST',
         headers: {
-          'Content-Type': 'multipart/form-data'
+          'Content-Type': 'application/json',
         },
-        body: formData
+        body: JSON.stringify({
+          knowledge_base_code: knowledgeBaseCode,
+          file_name: file.name
+        }),
       })
 
       if (!presignedUrlResponse.ok) {
@@ -135,75 +132,58 @@ export default function KnowledgeBaseDashboardPage() {
         throw new Error(errorData.error || 'Failed to get upload URL')
       }
 
-      const { file_url } = await presignedUrlResponse.json()
+      const { presigned_url, file_url } = await presignedUrlResponse.json()
 
       // Step 2: Upload file to S3
-      // const xhr = new XMLHttpRequest()
-      // xhr.open('PUT', presigned_url)
-      // xhr.setRequestHeader('Content-Type', 'application/pdf')
+      const uploadResponse = await fetch(presigned_url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/pdf',
+        },
+        body: file,
+      })
 
-      // // Set up progress tracking
-      // xhr.upload.onprogress = (event) => {
-      //   if (event.lengthComputable) {
-      //     const percentComplete = Math.round((event.loaded / event.total) * 100)
-      //     setUploadProgress(percentComplete)
-      //   }
-      // }
-
-      // Set up completion handler
-      // xhr.onload = async () => {
-      // if (xhr.status === 200) {
-      // Step 3: Register file in database
-      try {
-        const registerResponse = await fetch('/api/admin/knowledge-docs', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            knowledge_base_code: knowledgeBaseCode,
-            file_name: file.name,
-            file_url,
-            user_id: 'admin',
-            file_size: file.size,
-            status: 'pending'
-          }),
-        })
-
-        if (!registerResponse.ok) {
-          const errorData = await registerResponse.json()
-          throw new Error(errorData.error || 'Failed to register document')
-        }
-
-        // Refresh document list
-        const documentsResponse = await fetch(`/api/admin/knowledge-docs?knowledge_base_code=${knowledgeBaseCode}`)
-        const documentsData = await documentsResponse.json()
-        setDocuments(documentsData)
-
-        setUploadProgress(100)
-        // Reset after 2 seconds
-        setTimeout(() => {
-          setUploadProgress(null)
-          setIsUploading(false)
-
-          // Reset file input
-          if (fileInputRef.current) {
-            fileInputRef.current.value = ''
-          }
-        }, 2000)
-      } catch (err) {
-        setUploadError('File uploaded but failed to register')
-        setIsUploading(false)
+      if (!uploadResponse.ok) {
+        throw new Error('Failed to upload file')
       }
-      // } else {
-      //   setUploadError('Failed to upload file')
-      //   setIsUploading(false)
-      // }
-      // }
 
+      // Step 3: Register file in database
+      const registerResponse = await fetch('/api/admin/knowledge-docs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          knowledge_base_code: knowledgeBaseCode,
+          file_name: file.name,
+          file_url,
+          user_id: 'admin',
+          file_size: file.size,
+          status: 'pending'
+        }),
+      })
 
+      if (!registerResponse.ok) {
+        const errorData = await registerResponse.json()
+        throw new Error(errorData.error || 'Failed to register document')
+      }
 
+      // Refresh document list
+      const documentsResponse = await fetch(`/api/admin/knowledge-docs?knowledge_base_code=${knowledgeBaseCode}`)
+      const documentsData = await documentsResponse.json()
+      setDocuments(documentsData)
 
+      setUploadProgress(100)
+      // Reset after 2 seconds
+      setTimeout(() => {
+        setUploadProgress(null)
+        setIsUploading(false)
+
+        // Reset file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = ''
+        }
+      }, 2000)
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Upload failed')
       setIsUploading(false)

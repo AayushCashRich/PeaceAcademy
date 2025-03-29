@@ -1,12 +1,11 @@
+import { admin, storage } from '@/server/config/firebase-config';
 import logger from '@/server/config/pino-config';
-import { storage } from '@/server/config/firebase-config';
 
 /**
  * Create a presigned URL for uploading a file
  */
-export async function getPresignedUploadUrl(knowledgeBaseCode: string, fileName: string,file: File): Promise<string> {
-    logger.info(`Uploading file to Firebase Storage: ${fileName}`)
-    const bucket = storage;
+export async function getPresignedUploadUrl(knowledgeBaseCode: string, fileName: string): Promise<string> {
+  const bucket =  storage;
 
   // Format date for file path
   const now = new Date();
@@ -17,35 +16,22 @@ export async function getPresignedUploadUrl(knowledgeBaseCode: string, fileName:
   const filePath = `${knowledgeBaseCode}/${fileNameWithoutExt}_${dateStr}.pdf`;
   const generatedFileName = `${fileNameWithoutExt}_${dateStr}.pdf`;
   try {
-    let fileP = bucket.file(filePath);
-    try{ 
-        fileP = bucket.file(filePath);
+    const file = bucket.file(filePath);
 
-        await fileP.save(Buffer.from(await file.arrayBuffer()), {
-          metadata: {
-            contentType: 'application/pdf'
-          }
-        });
-     
-    } catch (error) {
-        logger.error({error}, `Failed to upload file to Firebase Storage: ${fileName}`)
-    }
     // Generate a signed URL for uploading with a 15-minute expiry
-    const [url] = await fileP.getSignedUrl({
-        action: 'write',
-        expires: Date.now() + 15 * 60 * 1000, // 15 minutes
-        contentType: 'application/pdf'
-      });
-  
-      // Return both the URL and the generated file path using snake_case
-      return JSON.stringify({
-          presigned_url: url,
-        file_name: generatedFileName,
-        file_path: filePath,
-        file_url: `https://storage.googleapis.com/${process.env.FIREBASE_STORAGE_BUCKET}/${filePath}`
-      });
+    const [url] = await file.getSignedUrl({
+      action: 'write',
+      expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+      contentType: 'application/pdf'
+    });
 
-
+    // Return both the URL and the generated file path using snake_case
+    return JSON.stringify({
+        presigned_url: url,
+      file_name: generatedFileName,
+      file_path: filePath,
+      file_url: `https://storage.googleapis.com/${process.env.FIREBASE_STORAGE_BUCKET}/${filePath}`
+    });
   } catch (error) {
     logger.error({ error }, `Failed to generate presigned URL for ${fileName}`);
     throw error;
