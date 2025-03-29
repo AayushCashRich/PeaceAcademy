@@ -12,8 +12,9 @@ declare global {
 }
 
 const ChatwootWidget = () => {
-  const websiteToken = 'xVqBq9WwqcGFiWhnexixemx1';
+  const websiteToken = 'Bc5vwDufeKPJ5oVjteaWgVNc';
   const baseUrl = 'https://app.chatwoot.com';
+
 
   return (
     <>
