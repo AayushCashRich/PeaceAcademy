@@ -125,7 +125,8 @@ export default function KnowledgeBaseDashboardPage() {
         },
         body: JSON.stringify({
           knowledge_base_code: knowledgeBaseCode,
-          file_name: file.name
+          file_name: file.name,
+          file: file
         }),
       })
 
@@ -200,12 +201,8 @@ export default function KnowledgeBaseDashboardPage() {
       // }
       // }
 
-      // xhr.onerror = () => {
-      //   setUploadError('Network error during upload')
-      //   setIsUploading(false)
-      // }
 
-      // xhr.send(file)
+
 
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Upload failed')

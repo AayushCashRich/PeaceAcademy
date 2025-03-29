@@ -4,7 +4,7 @@ import { storage } from '@/server/config/firebase-config';
 /**
  * Create a presigned URL for uploading a file
  */
-export async function getPresignedUploadUrl(knowledgeBaseCode: string, fileName: string): Promise<string> {
+export async function getPresignedUploadUrl(knowledgeBaseCode: string, fileName: string,file: File): Promise<string> {
   const bucket = storage;
 
   // Format date for file path
@@ -16,25 +16,16 @@ export async function getPresignedUploadUrl(knowledgeBaseCode: string, fileName:
   const filePath = `${knowledgeBaseCode}/${fileNameWithoutExt}_${dateStr}.pdf`;
   const generatedFileName = `${fileNameWithoutExt}_${dateStr}.pdf`;
   try {
-    const file = bucket.file(filePath);
+    const fileP = bucket.file(filePath);
 
-    const uploadTask = file.createWriteStream({
-        metadata: {
-          contentType: 'application/pdf',
-        },
+    await fileP.save(new Uint8Array(await file.arrayBuffer()), {
+          metadata: {
+              contentType: file.type
+          }
       });
-
-    uploadTask.on("finish", async () => {
-        logger.info(`File uploaded to ${filePath}`);
-    })
-    
-    uploadTask.on("error", (error) => {
-        logger.error({ error }, `Failed to upload file to ${filePath}`);
-        throw error;
-    })
       
     // Generate a signed URL for uploading with a 15-minute expiry
-    const [url] = await file.getSignedUrl({
+    const [url] = await fileP.getSignedUrl({
         action: 'write',
         expires: Date.now() + 15 * 60 * 1000, // 15 minutes
         contentType: 'application/pdf'

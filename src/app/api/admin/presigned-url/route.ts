@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     
     // Basic validation
-    if (!body.knowledge_base_code && !body.knowledgeBaseCode || !body.file_name && !body.fileName) {
+    if (!body.knowledge_base_code && !body.knowledgeBaseCode || !body.file_name && !body.fileName || !body.file) {
       return NextResponse.json(
         { error: 'Knowledge base code and file name are required' },
         { status: 400 }
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     // Allow for both camelCase and snake_case in request for backward compatibility
     const knowledgeBaseCode = body.knowledge_base_code || body.knowledgeBaseCode
     const fileName = body.file_name || body.fileName
-    
+    const file = body.file
     // Validate file name (must be PDF)
     if (!fileName.toLowerCase().endsWith('.pdf')) {
       return NextResponse.json(
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Generate the presigned URL
-    const urlData = await getPresignedUploadUrl(knowledgeBaseCode, fileName)
+    const urlData = await getPresignedUploadUrl(knowledgeBaseCode, fileName,file)
     
     // Parse the JSON string returned from getPresignedUploadUrl
     const { file_url } = JSON.parse(urlData)
