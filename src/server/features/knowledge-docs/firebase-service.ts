@@ -1,18 +1,36 @@
-import { initializeApp, cert } from 'firebase-admin/app';
-import { getStorage } from 'firebase-admin/storage';
+const admin = require("firebase-admin");
 import logger from '@/server/config/pino-config';
 
-// Decode the Base64 string to JSON
-const serviceAccount = JSON.parse(Buffer.from(process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 ?? '', 'base64').toString('utf-8'));
+const base64Credentials = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 ?? '';
 
-// Initialize Firebase Admin SDK
-initializeApp({
-  credential: cert(serviceAccount),
-  storageBucket: process.env.FIREBASE_STORAGE_BUCKET
-});
+if (!base64Credentials) {
+  throw new Error('GOOGLE_APPLICATION_CREDENTIALS_BASE64 is not set or is empty');
+}
+
+let serviceAccount;
+try {
+  const jsonString = Buffer.from(base64Credentials, 'base64').toString('utf-8');
+  serviceAccount = JSON.parse(jsonString);
+} catch (error) {
+  logger.error({ error }, 'Failed to parse service account JSON');
+  throw new Error('Invalid Base64 string for service account');
+}
+
+try {
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccount),
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET
+    });
+    console.log("Firebase initialized successfully.");
+  } catch (error) {
+    console.error("Error initializing Firebase:", error);
+  }
+  
+  let storage = admin.storage().bucket();
+  
 
 async function verifyFirebaseSetup() {
-  const bucket = getStorage().bucket();
+  const bucket = storage;
   console.log(`Connected to bucket: ${bucket.name}`);
 }
 
@@ -22,7 +40,7 @@ verifyFirebaseSetup();
  * Create a presigned URL for uploading a file
  */
 export async function getPresignedUploadUrl(knowledgeBaseCode: string, fileName: string): Promise<string> {
-  const bucket = getStorage().bucket();
+  const bucket =  storage;
 
   // Format date for file path
   const now = new Date();
@@ -58,7 +76,7 @@ export async function getPresignedUploadUrl(knowledgeBaseCode: string, fileName:
  * Create a presigned URL for downloading a file
  */
 export async function getPresignedDownloadUrl(filePath: string): Promise<string> {
-  const bucket = getStorage().bucket();
+  const bucket = storage;
 
   try {
     const file = bucket.file(filePath);
@@ -80,7 +98,7 @@ export async function getPresignedDownloadUrl(filePath: string): Promise<string>
  * Delete a file from Firebase Storage
  */
 export async function deleteFileFromStorage(filePath: string): Promise<void> {
-  const bucket = getStorage().bucket();
+  const bucket = storage;
 
   try {
     await bucket.file(filePath).delete();
