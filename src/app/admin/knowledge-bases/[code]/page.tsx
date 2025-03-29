@@ -140,11 +140,6 @@ export default function KnowledgeBaseDashboardPage() {
       const xhr = new XMLHttpRequest()
       xhr.open('PUT', presigned_url)
       xhr.setRequestHeader('Content-Type', 'application/pdf')
-      // Add CORS headers for Firebase Storage
-      xhr.setRequestHeader('Access-Control-Allow-Origin', '*')
-      xhr.setRequestHeader('Access-Control-Allow-Methods', 'PUT')
-      xhr.setRequestHeader('Access-Control-Allow-Headers', 'Content-Type')
-
       // Set up progress tracking
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
