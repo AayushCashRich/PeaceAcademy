@@ -1,11 +1,11 @@
-import { admin, storage } from '@/server/config/firebase-config';
 import logger from '@/server/config/pino-config';
+import { storage } from '@/server/config/firebase-config';
 
 /**
  * Create a presigned URL for uploading a file
  */
 export async function getPresignedUploadUrl(knowledgeBaseCode: string, fileName: string): Promise<string> {
-  const bucket =  storage;
+  const bucket = storage;
 
   // Format date for file path
   const now = new Date();
@@ -18,20 +18,37 @@ export async function getPresignedUploadUrl(knowledgeBaseCode: string, fileName:
   try {
     const file = bucket.file(filePath);
 
+    const uploadTask = file.createWriteStream({
+        metadata: {
+          contentType: 'application/pdf',
+        },
+      });
+
+    uploadTask.on("finish", async () => {
+        logger.info(`File uploaded to ${filePath}`);
+    })
+    
+    uploadTask.on("error", (error) => {
+        logger.error({ error }, `Failed to upload file to ${filePath}`);
+        throw error;
+    })
+      
     // Generate a signed URL for uploading with a 15-minute expiry
     const [url] = await file.getSignedUrl({
-      action: 'write',
-      expires: Date.now() + 15 * 60 * 1000, // 15 minutes
-      contentType: 'application/pdf'
-    });
+        action: 'write',
+        expires: Date.now() + 15 * 60 * 1000, // 15 minutes
+        contentType: 'application/pdf'
+      });
+  
+      // Return both the URL and the generated file path using snake_case
+      return JSON.stringify({
+          presigned_url: url,
+        file_name: generatedFileName,
+        file_path: filePath,
+        file_url: `https://storage.googleapis.com/${process.env.FIREBASE_STORAGE_BUCKET}/${filePath}`
+      });
 
-    // Return both the URL and the generated file path using snake_case
-    return JSON.stringify({
-        presigned_url: url,
-      file_name: generatedFileName,
-      file_path: filePath,
-      file_url: `https://storage.googleapis.com/${process.env.FIREBASE_STORAGE_BUCKET}/${filePath}`
-    });
+
   } catch (error) {
     logger.error({ error }, `Failed to generate presigned URL for ${fileName}`);
     throw error;
