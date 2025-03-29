@@ -17,7 +17,7 @@ export interface KnowledgeDocument {
   _id: string
   knowledge_base_code: string
   file_name: string
-  s3_url: string
+  file_url: string
   user_id: string
   file_size: number
   status: "pending" | "processed" | "error"
@@ -368,7 +368,7 @@ export default function KnowledgeBaseDashboardPage() {
                   <tr key={doc._id} className="hover:bg-gray-50 dark:hover:bg-gray-750">
                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-800 dark:text-gray-200">
                       <a
-                        href={doc.s3_url}
+                        href={doc.file_url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="hover:underline"

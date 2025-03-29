@@ -51,10 +51,10 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     
     // Delete from S3
     try {
-      const s3Key = extractS3KeyFromUrl(document.s3_url)
+      const s3Key = extractS3KeyFromUrl(document.file_url)
       await deleteFileFromS3(s3Key)
     } catch (s3Error) {
-      logger.error({ error: s3Error }, `Failed to delete file from S3: ${document.s3_url}`)
+      logger.error({ error: s3Error }, `Failed to delete file from S3: ${document.file_url}`)
       // Continue with document deletion even if S3 deletion fails
     }
     
