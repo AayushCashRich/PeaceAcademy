@@ -1,4 +1,4 @@
-const admin = require("firebase-admin");
+import admin from "firebase-admin";
 import logger from '@/server/config/pino-config';
 
 const base64Credentials = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64 ?? '';
@@ -17,24 +17,29 @@ try {
 }
 
 try {
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-      storageBucket: process.env.FIREBASE_STORAGE_BUCKET
-    });
-    console.log("Firebase initialized successfully.");
-  } catch (error) {
-    console.error("Error initializing Firebase:", error);
-  }
-  
-  let storage = admin.storage().bucket();
-  
-
-async function verifyFirebaseSetup() {
-  const bucket = storage;
-  console.log(`Connected to bucket: ${bucket.name}`);
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET
+  });
+  console.log("Firebase initialized successfully.");
+} catch (error) {
+  logger.error({ error }, "Error initializing Firebase");
+  throw new Error('Firebase initialization failed');
 }
 
-verifyFirebaseSetup();
+const storage = admin.storage().bucket();
 
+async function verifyFirebaseSetup() {
+  try {
+    const bucket = storage;
+    console.log(`Connected to bucket: ${bucket.name}`);
+  } catch (error) {
+    logger.error({ error }, 'Failed to verify Firebase setup');
+    throw new Error('Firebase setup verification failed');
+  }
+}
+
+
+verifyFirebaseSetup();
 
 export { admin, storage };

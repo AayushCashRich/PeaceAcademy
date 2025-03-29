@@ -32,9 +32,9 @@ export async function POST(req: NextRequest) {
     const urlData = await getPresignedUploadUrl(knowledgeBaseCode, fileName)
     
     // Parse the JSON string returned from getPresignedUploadUrl
-    const { presigned_url, file_path, file_url } = JSON.parse(urlData)
+    const { presigned_url,file_name, file_path, file_url } = JSON.parse(urlData)
     
-    return NextResponse.json({ presigned_url, file_path, file_url })
+    return NextResponse.json({ presigned_url, file_name, file_path, file_url })
   } catch (error) {
     logger.error({ error }, 'Failed to generate presigned URL')
     return NextResponse.json(

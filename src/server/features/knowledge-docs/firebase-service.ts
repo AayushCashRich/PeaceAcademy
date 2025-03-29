@@ -27,6 +27,7 @@ export async function getPresignedUploadUrl(knowledgeBaseCode: string, fileName:
 
     // Return both the URL and the generated file path using snake_case
     return JSON.stringify({
+        presigned_url: url,
       file_name: generatedFileName,
       file_path: filePath,
       file_url: `https://storage.googleapis.com/${process.env.FIREBASE_STORAGE_BUCKET}/${filePath}`
