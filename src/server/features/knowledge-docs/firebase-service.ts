@@ -5,7 +5,8 @@ import { storage } from '@/server/config/firebase-config';
  * Create a presigned URL for uploading a file
  */
 export async function getPresignedUploadUrl(knowledgeBaseCode: string, fileName: string,file: File): Promise<string> {
-  const bucket = storage;
+    logger.info(`Uploading file to Firebase Storage: ${fileName}`)
+    const bucket = storage;
 
   // Format date for file path
   const now = new Date();
