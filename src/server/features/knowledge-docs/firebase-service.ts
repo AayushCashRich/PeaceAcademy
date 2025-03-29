@@ -17,13 +17,19 @@ export async function getPresignedUploadUrl(knowledgeBaseCode: string, fileName:
   const filePath = `${knowledgeBaseCode}/${fileNameWithoutExt}_${dateStr}.pdf`;
   const generatedFileName = `${fileNameWithoutExt}_${dateStr}.pdf`;
   try {
-    const fileP = bucket.file(filePath);
+    let fileP = bucket.file(filePath);
+    try{ 
+        fileP = bucket.file(filePath);
 
-    await fileP.save(Buffer.from(await file.arrayBuffer()), {
-      metadata: {
-        contentType: 'application/pdf'
-      }
-    });
+        await fileP.save(Buffer.from(await file.arrayBuffer()), {
+          metadata: {
+            contentType: 'application/pdf'
+          }
+        });
+     
+    } catch (error) {
+        logger.error({error}, `Failed to upload file to Firebase Storage: ${fileName}`)
+    }
     // Generate a signed URL for uploading with a 15-minute expiry
     const [url] = await fileP.getSignedUrl({
         action: 'write',
