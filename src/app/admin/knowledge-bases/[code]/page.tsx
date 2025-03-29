@@ -134,13 +134,17 @@ export default function KnowledgeBaseDashboardPage() {
         throw new Error(errorData.error || 'Failed to get upload URL')
       }
       
-      const { presigned_url, s3_url } = await presignedUrlResponse.json()
+      const { presigned_url, file_url } = await presignedUrlResponse.json()
       
       // Step 2: Upload file to S3
       const xhr = new XMLHttpRequest()
       xhr.open('PUT', presigned_url)
       xhr.setRequestHeader('Content-Type', 'application/pdf')
-      
+      // Add CORS headers for Firebase Storage
+      xhr.setRequestHeader('Access-Control-Allow-Origin', '*')
+      xhr.setRequestHeader('Access-Control-Allow-Methods', 'PUT')
+      xhr.setRequestHeader('Access-Control-Allow-Headers', 'Content-Type')
+
       // Set up progress tracking
       xhr.upload.onprogress = (event) => {
         if (event.lengthComputable) {
@@ -162,7 +166,7 @@ export default function KnowledgeBaseDashboardPage() {
               body: JSON.stringify({
                 knowledge_base_code: knowledgeBaseCode,
                 file_name: file.name,
-                s3_url,
+                file_url,
                 user_id: 'admin',
                 file_size: file.size,
                 status: 'pending'
