@@ -118,16 +118,13 @@ export default function KnowledgeBaseDashboardPage() {
 
     try {
       // Step 1: Get presigned URL
+      const formData = new FormData();
+      formData.append("knowledge_base_code", knowledgeBaseCode);
+      formData.append("file_name", file.name);
+      formData.append("file", file);
       const presignedUrlResponse = await fetch('/api/admin/presigned-url', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          knowledge_base_code: knowledgeBaseCode,
-          file_name: file.name,
-          file: file
-        }),
+        body: formData
       })
 
       if (!presignedUrlResponse.ok) {
