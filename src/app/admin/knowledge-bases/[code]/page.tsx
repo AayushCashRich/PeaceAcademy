@@ -4,8 +4,6 @@ import { useState, useEffect, useRef } from "react"
 import { useParams } from "next/navigation"
 import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
-import { getStorage, ref, uploadBytesResumable, getDownloadURL } from "firebase/storage"
-
 
 export interface KnowledgeBase {
   _id: string
@@ -98,49 +96,63 @@ export default function KnowledgeBaseDashboardPage() {
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
-  
+    
     const file = files[0]
-  
+    
     // Validate file type
     if (!file.name.toLowerCase().endsWith('.pdf')) {
       setUploadError('Only PDF files are supported')
       return
     }
-  
+    
     // Validate file size (20MB max)
     if (file.size > 20 * 1024 * 1024) {
       setUploadError('File size must be less than 20MB')
       return
     }
-  
+    
     // Reset states
     setUploadError(null)
     setUploadProgress(0)
     setIsUploading(true)
-  
+    
     try {
-      // Initialize Firebase Storage
-      const storage = getStorage()
-      const storageRef = ref(storage, `knowledge-bases/${knowledgeBaseCode}/${file.name}`)
-  
-      // Upload file
-      const uploadTask = uploadBytesResumable(storageRef, file)
-  
-      // Monitor progress
-      uploadTask.on('state_changed', 
-        (snapshot) => {
-          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100
-          setUploadProgress(progress)
-        }, 
-        (error) => {
-          setUploadError('Failed to upload file')
-          setIsUploading(false)
-        }, 
-        async () => {
-          // Handle successful uploads
-          const file_url = await getDownloadURL(uploadTask.snapshot.ref)
-  
-          // Register file in database
+      // Step 1: Get presigned URL
+      const presignedUrlResponse = await fetch('/api/admin/presigned-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          knowledge_base_code: knowledgeBaseCode,
+          file_name: file.name
+        }),
+      })
+      
+      if (!presignedUrlResponse.ok) {
+        const errorData = await presignedUrlResponse.json()
+        throw new Error(errorData.error || 'Failed to get upload URL')
+      }
+      
+      const { presigned_url, s3_url } = await presignedUrlResponse.json()
+      
+      // Step 2: Upload file to S3
+      const xhr = new XMLHttpRequest()
+      xhr.open('PUT', presigned_url)
+      xhr.setRequestHeader('Content-Type', 'application/pdf')
+      
+      // Set up progress tracking
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percentComplete = Math.round((event.loaded / event.total) * 100)
+          setUploadProgress(percentComplete)
+        }
+      }
+      
+      // Set up completion handler
+      xhr.onload = async () => {
+        if (xhr.status === 200) {
+          // Step 3: Register file in database
           try {
             const registerResponse = await fetch('/api/admin/knowledge-docs', {
               method: 'POST',
@@ -150,29 +162,29 @@ export default function KnowledgeBaseDashboardPage() {
               body: JSON.stringify({
                 knowledge_base_code: knowledgeBaseCode,
                 file_name: file.name,
-                file_url,
+                s3_url,
                 user_id: 'admin',
                 file_size: file.size,
                 status: 'pending'
               }),
             })
-  
+            
             if (!registerResponse.ok) {
               const errorData = await registerResponse.json()
               throw new Error(errorData.error || 'Failed to register document')
             }
-  
+            
             // Refresh document list
             const documentsResponse = await fetch(`/api/admin/knowledge-docs?knowledge_base_code=${knowledgeBaseCode}`)
             const documentsData = await documentsResponse.json()
             setDocuments(documentsData)
-  
+            
             setUploadProgress(100)
             // Reset after 2 seconds
             setTimeout(() => {
               setUploadProgress(null)
               setIsUploading(false)
-  
+              
               // Reset file input
               if (fileInputRef.current) {
                 fileInputRef.current.value = ''
@@ -182,8 +194,19 @@ export default function KnowledgeBaseDashboardPage() {
             setUploadError('File uploaded but failed to register')
             setIsUploading(false)
           }
+        } else {
+          setUploadError('Failed to upload file')
+          setIsUploading(false)
         }
-      )
+      }
+      
+      xhr.onerror = () => {
+        setUploadError('Network error during upload')
+        setIsUploading(false)
+      }
+      
+      xhr.send(file)
+      
     } catch (err) {
       setUploadError(err instanceof Error ? err.message : 'Upload failed')
       setIsUploading(false)
