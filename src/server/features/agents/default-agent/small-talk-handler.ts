@@ -20,7 +20,7 @@ export class SmallTalkHandlerService {
   ): Promise<AgentResponse> {
     // Create a system prompt specifically for casual conversation
     const smallTalkPrompt = `You are a friendly customer support assistant.
-    Your name is IFTA Assistant.
+    Your name is Peace Academy Assistant.
     Be concise, conversational, and personable.
     Keep your responses brief and friendly.
     Avoid providing detailed or technical information unless specifically asked.

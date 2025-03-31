@@ -48,7 +48,7 @@ function getCookie(name: string): string | undefined {
     .split('; ')
     .find(row => row.startsWith(`${name}=`))
     ?.split('=')[1]
-  
+
   return cookieValue
 }
 
@@ -57,9 +57,9 @@ export default function ChatPage() {
   const knowledgeBaseCode = params.knowledgeBaseCode as string
   const [loading, setLoading] = useState(true) // Start with loading state
   const [conversationId, setConversationId] = useState<string | undefined>(undefined)
-  const [initialMessages, setInitialMessages] = useState<Array<{id: string, role: string, content: string}>>([]) // Store initial messages here first
+  const [initialMessages, setInitialMessages] = useState<Array<{ id: string, role: string, content: string }>>([]) // Store initial messages here first
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  
+
   // Load existing conversation when component mounts
   useEffect(() => {
     const fetchCurrentConversation = async () => {
@@ -70,11 +70,11 @@ export default function ChatPage() {
 
         if (cookieConversationId) {
           console.log('Found conversation ID in cookie:', cookieConversationId)
-          
+
           // Try to fetch this conversation
           try {
             const response = await axios.get(`/api/conversations/${cookieConversationId}`)
-            
+
             if (response.data && response.data.conversation_id) {
               const conversation = response.data as Conversation
               console.log("Conversation data:", conversation)
@@ -82,7 +82,7 @@ export default function ChatPage() {
               if (conversation.knowledge_base_code === knowledgeBaseCode) {
                 setConversationId(cookieConversationId)
                 existingConversation = true
-                
+
                 // Map the conversation messages to the format expected by useChat
                 if (conversation.messages && conversation.messages.length > 0) {
                   const chatMessages = conversation.messages.map((message: ChatMessage) => ({
@@ -90,7 +90,7 @@ export default function ChatPage() {
                     role: message.role,
                     content: message.content
                   }))
-                  
+
                   // Instead of setting messages directly, store them in state
                   // We'll use this to initialize the useChat hook
                   setInitialMessages(chatMessages)
@@ -104,13 +104,13 @@ export default function ChatPage() {
             console.error('Error fetching conversation from cookie ID:', error)
           }
         }
-        
+
         // If no valid conversation found from cookie, generate a new conversation ID
         if (!existingConversation) {
           // Generate new conversation ID
           const newConversationId = uuidv4()
           setConversationId(newConversationId)
-          
+
           // Set the cookie with 7-day expiry
           setCookie(CONVERSATION_COOKIE, newConversationId, COOKIE_EXPIRY_DAYS)
           console.log('Generated new conversation ID:', newConversationId)
@@ -121,50 +121,50 @@ export default function ChatPage() {
         setLoading(false) // End the loading state
       }
     }
-    
+
     fetchCurrentConversation()
   }, [knowledgeBaseCode])
-  
+
   // Use our own state management instead of the useChat hook
-  const [messages, setMessages] = useState<Array<{id: string, role: string, content: string}>>([])  
+  const [messages, setMessages] = useState<Array<{ id: string, role: string, content: string }>>([])
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  
+
   // Set initial messages once they're loaded
   useEffect(() => {
     if (initialMessages.length > 0) {
       setMessages(initialMessages)
     }
   }, [initialMessages])
-  
+
   // Handle input change
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value)
   }
-  
+
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    
+
     if (!input.trim() || isLoading) return
-    
+
     // Create user message
     const userMessage = {
       id: Math.random().toString(36).substring(2, 15),
       role: 'user',
       content: input.trim()
     }
-    
+
     // Add user message to messages
     const newMessages = [...messages, userMessage]
     setMessages(newMessages)
-    
+
     // Clear input
     setInput('')
-    
+
     // Set loading state
     setIsLoading(true)
-    
+
     try {
       // Send request to API
       const response = await axios.post('/api/chat', {
@@ -172,21 +172,21 @@ export default function ChatPage() {
         knowledge_base_code: knowledgeBaseCode,
         conversation_id: conversationId
       })
-      
+
       // Add assistant message from the response
       if (response.data) {
         // Extract the message content based on the response format
         // DefaultAgent returns either a direct response or a structured response with message property
-        const responseContent = typeof response.data === 'string' 
-          ? response.data 
+        const responseContent = typeof response.data === 'string'
+          ? response.data
           : response.data.message || response.data.text || ''
-        
+
         const assistantMessage = {
           id: Math.random().toString(36).substring(2, 15),
           role: 'assistant',
           content: responseContent
         }
-        
+
         setMessages([...newMessages, assistantMessage])
         console.log('Received assistant response:', responseContent.substring(0, 50) + '...')
       }
@@ -198,7 +198,7 @@ export default function ChatPage() {
         role: 'assistant',
         content: 'Sorry, there was an error processing your request. Please try again.'
       }
-      
+
       setMessages([...newMessages, errorMessage])
     } finally {
       setIsLoading(false)
@@ -210,7 +210,7 @@ export default function ChatPage() {
   useEffect(() => {
     console.log('Messages changed, new count:', messages.length)
   }, [messages])
-  
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -228,13 +228,13 @@ export default function ChatPage() {
   return (
     <div className="flex flex-col items-center min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
       <div className="absolute top-0 left-0 w-full h-24 bg-blue-600 dark:bg-blue-800"></div>
-      
+
       <main className="flex flex-col w-full max-w-3xl bg-white dark:bg-gray-800 shadow-xl rounded-xl mt-16 z-10 h-[85vh]">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-blue-600 dark:bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-md">
-              IFTA
+              Peace Academy
             </div>
             <div>
               <h1 className="font-semibold text-lg text-gray-800 dark:text-white">
@@ -252,7 +252,7 @@ export default function ChatPage() {
             ← Back to Home
           </Link>
         </div>
-        
+
         {/* Chat Messages */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           {messages.length === 0 ? (
@@ -272,22 +272,21 @@ export default function ChatPage() {
           ) : (
             <>
               {messages.map(m => (
-                <div 
-                  key={m.id} 
+                <div
+                  key={m.id}
                   className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
-                  <div 
-                    className={`max-w-[85%] px-4 py-3 rounded-lg ${
-                      m.role === 'user' 
-                        ? 'bg-blue-600 text-white rounded-tr-none' 
-                        : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-tl-none'
-                    }`}
+                  <div
+                    className={`max-w-[85%] px-4 py-3 rounded-lg ${m.role === 'user'
+                      ? 'bg-blue-600 text-white rounded-tr-none'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-tl-none'
+                      }`}
                   >
                     <p className="whitespace-pre-wrap">{m.content}</p>
                   </div>
                 </div>
               ))}
-              
+
               {/* Show searching placeholder when loading and the last message is from user */}
               {(isLoading || loading) && messages.length > 0 && messages[messages.length - 1].role === 'user' && (
                 <div className="flex justify-start">
@@ -301,7 +300,7 @@ export default function ChatPage() {
           )}
           <div ref={messagesEndRef} />
         </div>
-        
+
         {/* Input Form */}
         <div className="border-t border-gray-200 dark:border-gray-700 p-4">
           <form onSubmit={onSubmit} className="flex space-x-2">
@@ -313,8 +312,8 @@ export default function ChatPage() {
               className="flex-1 py-3 px-4 border border-gray-300 dark:border-gray-600 rounded-full bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
               disabled={isLoading}
             />
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               className="bg-blue-600 hover:bg-blue-700 text-white rounded-full p-3 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
               disabled={isLoading || !input.trim()}
             >
@@ -329,9 +328,9 @@ export default function ChatPage() {
           </form>
         </div>
       </main>
-      
+
       <footer className="mt-6 text-center text-gray-500 dark:text-gray-400 text-sm pb-4">
-        &copy; {new Date().getFullYear()} IFTA Customer Support. All rights reserved.
+        &copy; {new Date().getFullYear()} Peace Academy Customer Support. All rights reserved.
       </footer>
     </div>
   )

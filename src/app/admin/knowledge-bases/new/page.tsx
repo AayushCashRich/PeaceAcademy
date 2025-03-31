@@ -15,7 +15,7 @@ export default function CreateKnowledgeBasePage() {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  
+
   // Initial form state
   const [formData, setFormData] = useState<FormData>({
     knowledgeBaseCode: "",
@@ -23,33 +23,33 @@ export default function CreateKnowledgeBasePage() {
     description: "",
     isActive: true
   })
-  
+
   // Handle form input changes
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
   ) => {
     const { name, value, type } = e.target
-    
+
     setFormData(prev => ({
       ...prev,
-      [name]: type === "checkbox" 
-        ? (e.target as HTMLInputElement).checked 
+      [name]: type === "checkbox"
+        ? (e.target as HTMLInputElement).checked
         : value
     }))
   }
-  
+
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsSubmitting(true)
     setError(null)
-    
+
     try {
       // Validate form data
       if (!formData.knowledgeBaseCode || !formData.name) {
         throw new Error("Please fill in all required fields")
       }
-      
+
       // Submit form data to API
       const response = await fetch("/api/admin/knowledge-bases", {
         method: "POST",
@@ -61,15 +61,15 @@ export default function CreateKnowledgeBasePage() {
           code: formData.knowledgeBaseCode
         })
       })
-      
+
       if (!response.ok) {
         const errorData = await response.json()
         throw new Error(errorData.error || "Failed to create knowledge base")
       }
-      
+
       // Redirect to knowledge bases page on success
       router.push("/admin/knowledge-bases")
-      
+
     } catch (err) {
       if (err instanceof Error) {
         setError(err.message)
@@ -81,7 +81,7 @@ export default function CreateKnowledgeBasePage() {
       setIsSubmitting(false)
     }
   }
-  
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -93,13 +93,13 @@ export default function CreateKnowledgeBasePage() {
           ← Back to Knowledge Bases
         </Link>
       </div>
-      
+
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
           <span className="block sm:inline">{error}</span>
         </div>
       )}
-      
+
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -114,15 +114,15 @@ export default function CreateKnowledgeBasePage() {
                 name="knowledgeBaseCode"
                 value={formData.knowledgeBaseCode}
                 onChange={handleChange}
-                placeholder="e.g., IFTA-2025"
+                placeholder="e.g., Peace Academy"
                 className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 required
               />
               <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                A unique identifier for the knowledge base, e.g., IFTA-2025
+                A unique identifier for the knowledge base, e.g., Peace Academy-2025
               </p>
             </div>
-            
+
             {/* Knowledge Base Name */}
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -139,7 +139,7 @@ export default function CreateKnowledgeBasePage() {
                 required
               />
             </div>
-            
+
             {/* Active Status */}
             <div className="flex items-center">
               <label htmlFor="isActive" className="flex items-center cursor-pointer">
@@ -157,7 +157,7 @@ export default function CreateKnowledgeBasePage() {
               </label>
             </div>
           </div>
-          
+
           {/* Description */}
           <div>
             <label htmlFor="description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -173,7 +173,7 @@ export default function CreateKnowledgeBasePage() {
               className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             />
           </div>
-          
+
           {/* Form Actions */}
           <div className="flex justify-end space-x-3">
             <Link
