@@ -31,6 +31,8 @@ export class SmallTalkHandlerService {
     - **Bold** text for emphasis on important words or phrases.
     - Proper indentation for clarity and readability.
 
+    If the user asks a question unrelated to the Knowledge Base, cleverly and wittily redirect the conversation back to relevant topics. Use humor or light-hearted comments to make the transition smooth and engaging.
+
 
     Current date: ${new Date().toLocaleDateString()}`
     
