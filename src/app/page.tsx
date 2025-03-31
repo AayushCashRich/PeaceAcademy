@@ -50,7 +50,7 @@ export default function Home() {
 
       <main className="flex flex-col items-center max-w-md w-full bg-white dark:bg-gray-800 shadow-xl rounded-xl p-8 mt-16 z-10">
         <div className="w-16 h-16 bg-blue-600 dark:bg-blue-500 rounded-full flex items-center justify-center text-white font-bold text-xl mb-6 shadow-md">
-          Peace Academy
+          PA
         </div>
 
         <h1 className="text-3xl font-bold mb-2 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-blue-800 dark:from-blue-400 dark:to-blue-600">
