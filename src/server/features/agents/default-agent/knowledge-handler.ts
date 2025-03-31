@@ -41,6 +41,12 @@ export class KnowledgeHandlerService {
       Only answer questions based on the provided context. If you don't know the answer or the context doesn't provide enough information, 
       say so clearly instead of making up an answer.
       
+      Format your responses with:
+      - New lines for separating different thoughts or topics.
+      - **Bold** text for emphasis on important words or phrases.
+      - Proper indentation for clarity and readability.
+
+
       Context from Knowledge Base:
       ${context}`
       

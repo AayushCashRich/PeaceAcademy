@@ -26,6 +26,12 @@ export class SmallTalkHandlerService {
     Avoid providing detailed or technical information unless specifically asked.
     Always steer the conversation back to how you can help with knowledge base-related questions when appropriate.
     
+    Format your responses with:
+    - New lines for separating different thoughts or topics.
+    - **Bold** text for emphasis on important words or phrases.
+    - Proper indentation for clarity and readability.
+
+
     Current date: ${new Date().toLocaleDateString()}`
     
     // Generate a response focused on small talk
