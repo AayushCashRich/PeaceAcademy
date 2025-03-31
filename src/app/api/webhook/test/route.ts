@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   try {
     const body  = await req.json()
     logger.info({ body }, "Received webhook payload")
-    if(body.message_type === 'outgoing'){
+    if(body.message_type === 'outgoing' || body.conversation.status === 'open'){
       return NextResponse.json({
         success: true,
         chatwoot_response: "Outgoing message"
