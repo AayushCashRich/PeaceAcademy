@@ -51,7 +51,7 @@ export class DefaultAgent implements AIAgent<AgentRequest, AgentResponse> {
    */
   async process(request: AgentRequest): Promise<AgentResponse> {
     try {
-      const { query, previousMessages, knowledgeBaseCode } = request
+      const { query, previousMessages, knowledgeBaseCode, conversationId } = request
       
       // Validate required fields
       if (!knowledgeBaseCode || !query) {
@@ -83,20 +83,20 @@ export class DefaultAgent implements AIAgent<AgentRequest, AgentResponse> {
           responseObj = await this.liveAgentHandoffService.handoverToAgent(request)
           break
           
-        case ChatIntentType.TRANSACTION:
-          // Priority 2: Process transaction
-          responseObj = await this.transactionHandler.processTransaction(request)
-          break
+        // case ChatIntentType.TRANSACTION:
+        //   // Priority 2: Process transaction
+        //   responseObj = await this.transactionHandler.processTransaction(request)
+        //   break
           
         // case ChatIntentType.TICKET_CREATION:
         //   // Priority 3: Handle ticket creation requests
         //   responseObj = await this.ticketCreationHandler.processTicketCreation(request)
         //   break
           
-        case ChatIntentType.FAQ:
-          // Priority 4: Answer using knowledge base
-          responseObj = await this.knowledgeHandler.handleKnowledgeQuery(request)
-          break
+        // case ChatIntentType.FAQ:
+        //   // Priority 4: Answer using knowledge base
+        //   responseObj = await this.knowledgeHandler.handleKnowledgeQuery(request)
+        //   break
           
         case ChatIntentType.SMALL_TALK:
           // Priority 5: Handle casual conversation
