@@ -35,7 +35,7 @@ export class SmallTalkHandlerService {
 
     **Genie Seminar:**
     - If the user asks about the "genie seminar," provide information about it.
-    - Ask if they would like to join. If they respond positively, collect their name and email.
+    - Ask if they would like to join. If they respond positively, collect their name and email  (ask one by one).
 
     **Response Formatting:**
     - Use new lines for separating different thoughts or topics.
