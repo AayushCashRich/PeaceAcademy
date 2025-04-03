@@ -40,41 +40,106 @@ export async function POST(req: NextRequest) {
 
     logger.info({ messageContent, conversationId }, "Extracted message content and conversation ID")
 
-    const messages = [
-      {
-        role: 'user',
-        content: messageContent
-      }
-    ]
-
-    // Process the request using DefaultAgent
-    const response = await processChatRequest(messages,'Peace-Academy', conversationId)
-    
-    console.log(conversationId)
-     
-    // Send response back to Chatwoot
-    const chatwootResponse = await axios.post(
-      `https://app.chatwoot.com/api/v1/accounts/${accountId}/conversations/${conversationId}/messages`,
-      {
-        content: response,
-        message_type: 'outgoing',
-        private: false,
-        content_type: 'text'
-      },
-      {
-        headers: {
-          'api_access_token': CHATWOOT_API_TOKEN,
-          'Content-Type': 'application/json'
+    // Fetch previous messages from Chatwoot API
+    try {
+      const chatwootMessagesResponse = await axios.get(
+        `https://app.chatwoot.com/api/v1/accounts/${accountId}/conversations/${conversationId}/messages`,
+        {
+          headers: {
+            'api_access_token': CHATWOOT_API_TOKEN,
+            'Content-Type': 'application/json'
+          }
         }
-      }
-    )
+      );
+      
+      logger.info({ messageCount: chatwootMessagesResponse.data.length }, "Retrieved previous messages from Chatwoot")
+      
+      // Convert Chatwoot messages to the format expected by the AI model
+      const previousMessages = chatwootMessagesResponse.data
+        .filter((msg: any) => msg.content) // Filter out messages with no content
+        .map((msg: any) => ({
+          role: msg.message_type === 'incoming' ? 'user' : 'assistant',
+          content: msg.content
+        }))
+        .reverse() // Get messages in chronological order
+        .slice(-10); // Only include the last 10 messages for context
+      
+      // Add the current message
+      const messages = [
+        ...previousMessages,
+        {
+          role: 'user',
+          content: messageContent
+        }
+      ];
+      
+      logger.info({ messageCount: messages.length }, "Prepared messages with conversation history")
+      logger.info({ messages: JSON.stringify(messages) }, "Messages with conversation history")
+      // Process the request using DefaultAgent with conversation history
+      const response = await processChatRequest(messages, 'Peace-Academy', conversationId)
+      
+     
+      // Send response back to Chatwoot
+      const chatwootResponse = await axios.post(
+        `https://app.chatwoot.com/api/v1/accounts/${accountId}/conversations/${conversationId}/messages`,
+        {
+          content: response,
+          message_type: 'outgoing',
+          private: false,
+          content_type: 'text'
+        },
+        {
+          headers: {
+            'api_access_token': CHATWOOT_API_TOKEN,
+            'Content-Type': 'application/json'
+          }
+        }
+      )
 
-    logger.info({ chatwootResponse: chatwootResponse.data }, "Sent response back to Chatwoot")
+      logger.info({ chatwootResponse: chatwootResponse.data }, "Sent response back to Chatwoot")
 
-    return NextResponse.json({
-      success: true,
-      chatwoot_response: chatwootResponse.data
-    })
+      return NextResponse.json({
+        success: true,
+        chatwoot_response: chatwootResponse.data
+      })
+
+    } catch (error) {
+      logger.error({ error }, 'Error fetching previous messages from Chatwoot')
+      // Continue with just the current message if we can't fetch history
+      const messages = [
+        {
+          role: 'user',
+          content: messageContent
+        }
+      ];
+      
+      // Process the request using DefaultAgent
+      const response = await processChatRequest(messages, 'Peace-Academy', conversationId)
+      
+      // Send response back to Chatwoot
+      const chatwootResponse = await axios.post(
+        `https://app.chatwoot.com/api/v1/accounts/${accountId}/conversations/${conversationId}/messages`,
+        {
+          content: response,
+          message_type: 'outgoing',
+          private: false,
+          content_type: 'text'
+        },
+        {
+          headers: {
+            'api_access_token': CHATWOOT_API_TOKEN,
+            'Content-Type': 'application/json'
+          }
+        }
+      )
+
+      logger.info({ chatwootResponse: chatwootResponse.data }, "Sent response back to Chatwoot (without history)")
+
+      return NextResponse.json({
+        success: true,
+        chatwoot_response: chatwootResponse.data
+      })
+    }
 
   } catch (error) {
     logger.error({ error }, 'Error processing webhook chat request')
