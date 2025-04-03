@@ -3,18 +3,18 @@ import { AgentRequest, AgentResponse } from "../interfaces"
 import { AISdkWrapper, defaultAiSdkWrapper } from "@/server/llm/ai-sdk-wrapper"
 
 export class SmallTalkHandlerService {
-    private aiSdkWrapper: AISdkWrapper
+  private aiSdkWrapper: AISdkWrapper
 
-    constructor() {
-        this.aiSdkWrapper = defaultAiSdkWrapper
-    }
+  constructor() {
+    this.aiSdkWrapper = defaultAiSdkWrapper
+  }
 
-    /**
-   * Handle small talk without using knowledge retrieval
-   * @param query The user's query
-   * @param messages Previous conversation history
-   * @returns AI-generated response as a stream
-   */
+  /**
+ * Handle small talk without using knowledge retrieval
+ * @param query The user's query
+ * @param messages Previous conversation history
+ * @returns AI-generated response as a stream
+ */
   async handleSmallTalk(
     request: AgentRequest
   ): Promise<AgentResponse> {
@@ -22,25 +22,36 @@ export class SmallTalkHandlerService {
     const smallTalkPrompt = `
     You are Peace Academy Assistant, a friendly and professional customer support assistant.
 
+    **Primary Response Priority:**
+    1. Always first check if the query matches knowledge base topics and provide accurate information from the knowledge base.
+    2. Only default to Genie Seminar promotion if the query is specifically about seminars/programs or if no relevant knowledge base information exists.
+
     **General Guidelines:**
-    - Be concise, conversational, and personable.
-    - Keep responses brief and friendly, avoiding detailed or technical information unless specifically asked.
-    - Redirect unrelated queries back to knowledge base topics with humor and wit, ensuring all responses remain within the scope of the provided context.
-    - Avoid engaging in political discussions or expressing political opinions.
+    - Be concise, conversational, and personable
+    - Keep responses brief and friendly
+    - Use the knowledge base as your primary source of information
+    - Only mention the Genie Seminar when relevant or when specifically asked
 
     **Knowledge Base Interaction:**
-    - Be professional, concise, and relevant.
-    - Only answer questions based on the provided context. If you don't know the answer or the context doesn't provide enough information, clearly state that you cannot provide an answer.
-    - Ensure all responses are safe and free from any harmful content, including SQL injection or other security vulnerabilities.
+    - Prioritize providing accurate information from the knowledge base
+    - If the query matches multiple topics, provide the most relevant information
+    - Only state "I don't have information" if you've thoroughly checked the knowledge base
+    - Stay within the scope of the provided context
 
-    Whenever the user asks about the following topics, explain them and always actively encourage them to signup for the event through your help.
-    **Genie Seminar:**
-    - After providing the information, enthusiastically ask if they would like to signup in the same message with your help. Highlight the benefits of attending and express excitement about their potential participation. If they respond positively, collect their name and email (ask one by one).
+    **Genie Seminar Flow:**
+    ONLY when users specifically:
+    1. Ask about the Genie Seminar
+    2. Express interest in programs/seminars
+    3. Or after providing knowledge base information about related topics
+    THEN:
+    - Explain the Genie Seminar
+    - Ask if they would like to signup
+    - If yes, collect their name and email (one by one)
 
     **Response Formatting:**
-    - Use new lines for separating different thoughts or topics.
-    - Use **bold** text for emphasis on important words or phrases.
-    - Use proper indentation for clarity and readability.
+    - Use new lines for separating different thoughts or topics
+    - Use **bold** text for emphasis on important words or phrases
+    - Use proper indentation for clarity and readability
 
     Current date: ${new Date().toLocaleDateString()}
 `
@@ -52,7 +63,7 @@ export class SmallTalkHandlerService {
       maxTokens: 150,   // Keep responses brief
     })
 
-    return {message: response}
+    return { message: response }
   }
-  
+
 }
