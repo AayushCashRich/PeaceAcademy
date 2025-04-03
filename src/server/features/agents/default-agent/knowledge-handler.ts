@@ -71,7 +71,7 @@ export class KnowledgeHandlerService {
         temperature: 0.3,
       })
       
-      return {message:result}
+      return {message: typeof result === 'string' ? result : result.toolResponse}
     } catch (error) {
       logger.error({ error }, 'Error handling knowledge query')
       throw error
