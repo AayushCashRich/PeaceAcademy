@@ -55,13 +55,18 @@ export async function POST(req: NextRequest) {
       logger.info({ messageCount: chatwootMessagesResponse.data.length }, "Retrieved previous messages from Chatwoot")
       
       // Convert Chatwoot messages to the format expected by the AI model
-      const previousMessages = chatwootMessagesResponse.data
-        .filter((msg: any) => msg.content) // Filter out messages with no content
+      const previousMessages = chatwootMessagesResponse.data.payload
+        .filter((msg: any) => {
+          // Filter out messages with no content and private messages
+          return msg.content && !msg.private;
+        })
         .map((msg: any) => ({
-          role: msg.message_type === 'incoming' ? 'user' : 'assistant',
-          content: msg.content
+          role: msg.message_type === 0 ? 'user' : 'assistant', // 0 is incoming (user), 1 is outgoing (assistant)
+          content: msg.content,
+          created_at: msg.created_at // Optionally keep timestamp for chronological ordering
         }))
-        .reverse() // Get messages in chronological order
+        .sort((a: any, b: any) => a.created_at - b.created_at) // Sort by timestamp
+        .map(({ role, content }: { role: string; content: string }) => ({ role, content })) // Remove timestamp after sorting
         .slice(-10); // Only include the last 10 messages for context
       
       // Add the current message
@@ -73,7 +78,12 @@ export async function POST(req: NextRequest) {
         }
       ];
       
-      logger.info({ messageCount: messages.length }, "Prepared messages with conversation history")
+      logger.info({ 
+        messageCount: messages.length,
+        firstMessage: messages[0]?.content?.substring(0, 100),
+        lastMessage: messages[messages.length - 1]?.content?.substring(0, 100)
+      }, "Prepared messages with conversation history")
+      
       logger.info({ messages: JSON.stringify(messages) }, "Messages with conversation history")
       // Process the request using DefaultAgent with conversation history
       const response = await processChatRequest(messages, 'Peace-Academy', conversationId)
