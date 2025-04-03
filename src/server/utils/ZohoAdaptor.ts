@@ -62,8 +62,8 @@ export class ZohoService {
 
             // Split name into first and last name
             const nameParts = name.split(' ')
-            const lastName = ""
-            const firstName = name
+            const lastName = nameParts.pop() || name
+            const firstName = nameParts.join(' ')
 
             const response = await axios.post<ZohoLeadResponse>(
                 `${this.baseUrl}/Leads`,
