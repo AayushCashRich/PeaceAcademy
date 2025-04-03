@@ -105,7 +105,7 @@ export class DefaultAgent implements AIAgent<AgentRequest, AgentResponse> {
           
         default:
           // Fallback: Use knowledge base as default
-          responseObj = await this.knowledgeHandler.handleKnowledgeQuery(request)
+          responseObj = await this.smallTalkHandler.handleSmallTalk(request)
           break
       }
       

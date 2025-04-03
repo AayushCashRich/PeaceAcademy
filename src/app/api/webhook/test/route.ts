@@ -71,11 +71,7 @@ export async function POST(req: NextRequest) {
       
       // Add the current message
       const messages = [
-        ...previousMessages,
-        {
-          role: 'user',
-          content: messageContent
-        }
+        ...previousMessages
       ];
       
       logger.info({ 
@@ -83,7 +79,7 @@ export async function POST(req: NextRequest) {
         firstMessage: messages[0]?.content?.substring(0, 100),
         lastMessage: messages[messages.length - 1]?.content?.substring(0, 100)
       }, "Prepared messages with conversation history")
-      
+
       logger.info({ messages: JSON.stringify(messages) }, "Messages with conversation history")
       // Process the request using DefaultAgent with conversation history
       const response = await processChatRequest(messages, 'Peace-Academy', conversationId)

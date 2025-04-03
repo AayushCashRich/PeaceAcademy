@@ -37,7 +37,10 @@ export class IntentClassifierService {
       
       // Create a context-aware prompt by including the last few messages
       const recentMessages = messageHistory.slice(-6)
-      
+  
+//- TRANSACTION: User wants to perform an action like registering, canceling, modifying bookings    
+
+
       // Generate structured classification using Vercel AI SDK
       const { object } = await defaultAiSdkWrapper.generateObject<IntentClassification>({
         schema: z.object({
@@ -59,9 +62,6 @@ ${recentMessages.map(msg => `${msg.role}: ${msg.content}`).join('\n')}
 
 Classification rules:
 - AGENT_REQUEST: User explicitly asks for a live agent or shows extreme frustration
-- TRANSACTION: User wants to perform an action like registering, canceling, modifying bookings
-- TICKET_CREATION: User wants to create a new ticket
-- FAQ: User asks a question that can be answered with knowledge from the knowledge base
 - SMALL_TALK: Casual conversation, greetings, thanks, or out-of-context questions or questions not relevant to the knowledge base
 
 Consider both the user query and the conversation history when classifying.`
