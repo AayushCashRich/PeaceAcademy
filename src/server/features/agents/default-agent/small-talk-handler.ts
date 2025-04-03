@@ -173,8 +173,28 @@ export class SmallTalkHandlerService {
       },
       toolChoice: 'auto'
     })
-    logger.info({response},"Response ");
-    return { message: response }
+
+    // Log the complete response object for debugging
+    logger.info({ fullResponse: JSON.stringify(response) }, "Complete AI Response")
+
+    // Handle the response based on its type
+    let finalMessage = ''
+    if (response && typeof response === 'object') {
+      if ('content' in response) {
+        finalMessage = (response as { content: string }).content
+      } else if ('tool_calls' in response) {
+        const toolCall = (response as { tool_calls: Array<{ function: { arguments: string } }> }).tool_calls[0]
+        if (toolCall && toolCall.function && toolCall.function.arguments) {
+          const args = JSON.parse(toolCall.function.arguments)
+          finalMessage = args.message || String(response)
+        }
+      }
+    } else if (typeof response === 'string') {
+      finalMessage = response
+    }
+
+    logger.info({ finalMessage }, "Processed Response")
+    return { message: finalMessage || "I apologize, but I couldn't process the response properly." }
   }
 
 }
