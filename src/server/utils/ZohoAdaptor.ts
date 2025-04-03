@@ -11,8 +11,14 @@ interface ZohoAuthResponse {
 // Schema for Zoho lead response
 interface ZohoLeadResponse {
     data: Array<{
-        id: string
+        id?: string
         status: string
+        code?: string
+        details?: {
+            api_name: string
+            id: string
+        }
+        message?: string
     }>
 }
 
@@ -56,14 +62,28 @@ export class ZohoService {
         }
     }
 
-    async createLead(name: string, email: string): Promise<string> {
+    async createLead(name: string, email: string): Promise<{
+        success: boolean
+        isDuplicate?: boolean
+        leadId?: string
+        existingLeadId?: string
+        error?: string
+    }> {
         try {
             const accessToken = await this.getAccessToken()
 
             // Split name into first and last name
             const nameParts = name.split(' ')
-            const lastName = nameParts.pop() || name
+            let lastName = nameParts.pop() || ''
             const firstName = nameParts.join(' ')
+
+            // Validate if we have a last name
+            if (!lastName) {
+                return {
+                    success: false,
+                    error: 'MISSING_LAST_NAME'
+                }
+            }
 
             const response = await axios.post<ZohoLeadResponse>(
                 `${this.baseUrl}/Leads`,
@@ -84,9 +104,25 @@ export class ZohoService {
                     }
                 }
             )
+            const leadData = response.data.data[0]
 
-            logger.info({ leadId: response.data.data[0].id }, 'Successfully created Zoho lead')
-            return response.data.data[0].id
+
+            if (leadData.status === 'success') {
+                logger.info({ leadId: leadData.id }, 'Successfully created Zoho lead')
+                return {
+                    success: true,
+                    leadId: leadData.id
+                }
+            } else if (leadData.code === 'DUPLICATE_DATA' && leadData.details?.api_name === 'Email') {
+                logger.info({ email, existingLeadId: leadData.details.id }, 'Duplicate email found in Zoho')
+                return {
+                    success: false,
+                    isDuplicate: true,
+                    existingLeadId: leadData.details.id
+                }
+            } else {
+                throw new Error(leadData.message || 'Unknown error')
+            }
         } catch (error) {
             logger.error({ error }, 'Error creating Zoho lead')
             throw new Error('Failed to create lead')

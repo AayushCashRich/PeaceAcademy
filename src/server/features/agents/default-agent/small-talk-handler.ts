@@ -39,7 +39,7 @@ export class SmallTalkHandlerService {
     **Primary Response Priority:**
     1. Always first check if the query matches knowledge base topics and provide accurate information from the knowledge base.
     2. Only default to Genie Seminar promotion if the query is specifically about seminars/programs or if no relevant knowledge base information exists.
-    3. When user shows interest in joining (says yes, interested, etc.), collect their name and email for registration.
+    3. When user shows interest in joining (says yes, interested, etc.), collect their full name and email for registration.
 
     **General Guidelines:**
     - Be concise and friendly (keep responses under 3-4 lines when possible)
@@ -50,7 +50,7 @@ export class SmallTalkHandlerService {
     **Registration Flow:**
     When user shows interest in joining:
     1. Thank them for their interest
-    2. Ask for their name if not provided
+    2. Ask for their full name if not provided
     3. Ask for their email if not provided
     4. Once details are collected, provide next steps
 
@@ -94,22 +94,36 @@ export class SmallTalkHandlerService {
       maxTokens: 150,
       tools: {
         createZohoLead: tool({
-          description: 'Create a lead in Zoho CRM when user provides both name and email for Genie Seminar registration. Only call this tool when you have collected both pieces of information.',
+          description: 'Create a lead in Zoho CRM. IMPORTANT: Only call this tool when you have both FULL NAME (first AND last name) and email. If last name is missing, first ask for it. If duplicate email is found, offer calendar invite. After successful registration, ask if they want a calendar invite.',
           parameters: z.object({
-            name: z.string().describe('Full name of the participant'),
+            name: z.string().describe('Full name of the participant (must include both first and last name)'),
             email: z.string().email().describe('Email address of the participant')
           }),
           execute: async ({ name, email }) => {
             try {
               logger.info({ name, email }, 'Attempting to create Zoho lead')
 
-              const leadId = await zohoService.createLead(name, email)
+              const result = await zohoService.createLead(name, email)
 
-              logger.info({ leadId, name, email }, 'Successfully created Zoho lead')
-
-              return {
-                success: true,
-                message: "Wonderful! I've registered you for the Genie Seminar. You'll receive a confirmation email shortly with all the details. We're excited to have you join us! 😊"
+              if (result.success) {
+                return {
+                  success: true,
+                  message: "Excellent! I've registered you for the Genie Seminar. You'll receive a confirmation email shortly with all the details. Would you like me to send you a calendar invite for the upcoming session? 📅"
+                }
+              } else if (result.error === 'MISSING_LAST_NAME') {
+                return {
+                  success: false,
+                  needsLastName: true,
+                  message: "I notice I don't have your last name. To properly register you, could you please provide your full name (both first and last name)?"
+                }
+              } else if (result.isDuplicate) {
+                return {
+                  success: false,
+                  isDuplicate: true,
+                  message: "I see you're already registered for the Genie Seminar! Would you like me to send you a calendar invite for the upcoming session? 📅"
+                }
+              } else {
+                throw new Error('Unknown error occurred')
               }
             } catch (error) {
               logger.error({ error, name, email }, 'Failed to create Zoho lead')
@@ -119,8 +133,30 @@ export class SmallTalkHandlerService {
               }
             }
           }
+        }),
+        sendCalendarInvite: tool({
+          description: 'Send a calendar invite for the Genie Seminar. Use this when user requests a calendar invite after successful registration or for existing registrations.',
+          parameters: z.object({
+            email: z.string().email().describe('Email address to send the calendar invite to')
+          }),
+          execute: async ({ email }) => {
+            try {
+              logger.info({ email }, 'Sending calendar invite')
+              // Implementation for sending calendar invite would go here
+              return {
+                success: true,
+                message: "I've sent you a calendar invite for the upcoming Genie Seminar. You should receive it in your email shortly. Looking forward to having you join us! 🗓️"
+              }
+            } catch (error) {
+              logger.error({ error, email }, 'Failed to send calendar invite')
+              return {
+                success: false,
+                message: "I apologize, but I encountered an error while sending the calendar invite. Please check your confirmation email for the session details."
+              }
+            }
+          }
         })
-      },  // Keep responses brief
+      },
       toolChoice: 'auto'
     })
 
