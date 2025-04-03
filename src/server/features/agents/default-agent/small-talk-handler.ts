@@ -1,12 +1,17 @@
 import { CoreAssistantMessage, CoreSystemMessage, CoreUserMessage } from "ai"
 import { AgentRequest, AgentResponse } from "../interfaces"
+import { KnowledgeHandlerService } from './knowledge-handler'
 import { AISdkWrapper, defaultAiSdkWrapper } from "@/server/llm/ai-sdk-wrapper"
 
 export class SmallTalkHandlerService {
   private aiSdkWrapper: AISdkWrapper
 
-  constructor() {
+  knowledgeHandler: KnowledgeHandlerService
+
+  constructor(
+    knowledgeHandler: KnowledgeHandlerService) {
     this.aiSdkWrapper = defaultAiSdkWrapper
+    this.knowledgeHandler = knowledgeHandler
   }
 
   /**
@@ -18,6 +23,13 @@ export class SmallTalkHandlerService {
   async handleSmallTalk(
     request: AgentRequest
   ): Promise<AgentResponse> {
+
+    // Search for relevant knowledge using the query
+    const searchResults = await this.knowledgeHandler.retrieveKnowledge(request.query, request.knowledgeBaseCode)
+
+    // Format the context for the LLM
+    const context = searchResults.relevantContext
+
     // Create a system prompt specifically for casual conversation
     const smallTalkPrompt = `
     You are Peace Academy Assistant, a friendly and professional customer support assistant.
@@ -54,7 +66,8 @@ export class SmallTalkHandlerService {
     - Use proper indentation for clarity and readability
 
     Current date: ${new Date().toLocaleDateString()}
-`
+      **Context from Knowledge Base:**
+      ${context}`
     // Generate a response focused on small talk
     const response = await this.aiSdkWrapper.generateText({
       system: smallTalkPrompt,
