@@ -173,7 +173,7 @@ export class SmallTalkHandlerService {
       },
       toolChoice: 'auto'
     })
-
+    logger.info({response},"Response ");
     return { message: response }
   }
 
