@@ -171,10 +171,19 @@ export class SmallTalkHandlerService {
           }
         })
       },
-      toolChoice: 'auto'
+      toolChoice: 'auto',
     })
-    logger.info({response},"Response ");
-    return { message: response }
+
+    // Check if response is a tool response
+    if (typeof response === 'object' && 'toolResponse' in response) {
+      logger.info({ toolResponse: response.toolResponse }, "Tool response received")
+      // Return the tool's message directly
+      return { message: response.toolResponse.message }
+    }
+
+    // If it's a regular text response
+    logger.info({ response }, "Regular response")
+    return { message: response || "I apologize, but I couldn't generate a proper response." }
   }
 
 }

@@ -14,6 +14,12 @@ export interface AgentRequest {
 export interface AgentResponse {
   message: string
   metadata?: Record<string, unknown>
+  toolResponse?: {
+    success: boolean
+    message: string
+    needsLastName?: boolean
+    isDuplicate?: boolean
+  }
 }
 
 /**

@@ -123,38 +123,24 @@ export class AISdkWrapper {
   /**
    * Generates text with the AI model, falling back to the secondary model if needed
    */
-  async generateText(params: TextGenerationParams): Promise<string> {
-    let attempts = 0
-    const maxAttempts = (this.config.maxRetries || 0) + 1
-
-    while (attempts < maxAttempts) {
-      attempts++
-      const model = this.getModel(attempts)
-      try {
-        this.log('Generating text', { model: model.modelId })
-        const result = await generateText({
-          ...params,
-          model: model
-        })
-        
-        // Return the text from the response
-        if (result.response.messages[0]?.content[0]) {
-          return (result.response.messages[0].content[0] as TextPart).text as string
-        }
-        return ''
-      } catch (error) {
-        this.logError(`Error generating text with model ${model.modelId}`, error)
-        
-        if (attempts < maxAttempts && this.shouldRetry(error)) {
-          this.log(`Retrying with fallback model`, { fallbackModel: model.modelId })
-        } else {
-          throw error
+  async generateText(params: BaseCompletionParams): Promise<string | { toolResponse: any }> {
+    try {
+      const response = await generateText({
+        ...params,
+        model: this.getModel(1),
+      })
+      // If the response includes tool results
+      if (response.toolResults) {
+        return {
+          toolResponse: response.toolResults
         }
       }
-    }
 
-    // This should never be reached due to the throw in the catch block
-    throw new Error('Failed to generate text after exhausting all retry attempts')
+      return response.text || ''
+    } catch (error) {
+      logger.error({ error }, 'Error in generateText')
+      throw error
+    }
   }
 
   /**
