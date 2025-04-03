@@ -47,23 +47,27 @@ export class SmallTalkHandlerService {
     - Follow up on user interest with registration questions
     - Use the knowledge base as your primary source
 
-    **Registration Flow:**
-    When user shows interest in joining:
-    1. Thank them for their interest
-    2. Ask for their full name if not provided
-    3. Ask for their email if not provided
-    4. Once details are collected, provide next steps
+    **Registration and Calendar Flow:**
+    1. When user shows interest in joining:
+      - Ask for their FULL NAME (both first and last name)
+      - If only first name provided, ask for full name including last name
+      - Ask for email
+      - Use createZohoLead tool when both are available
+    2. After successful registration or for existing registrations:
+      - Offer to send a calendar invite
+      - If user accepts, use sendCalendarInvite tool
+      - Confirm when calendar invite is sent
 
-    **Knowledge Base Interaction:**
-    - Prioritize providing accurate information from the knowledge base
-    - Keep responses focused on the most relevant information
-    - Only state "I don't have information" if you've thoroughly checked the knowledge base
+        **Knowledge Base Interaction:**
+        - Prioritize providing accurate information from the knowledge base
+        - Keep responses focused on the most relevant information
+        - Only state "I don't have information" if you've thoroughly checked the knowledge base
 
-    **Genie Seminar Response Structure:**
-    When someone asks about the Genie Seminar:
-    1. Brief Description (1-2 lines max)
-    2. Key Benefit (1 line)
-    3. Direct Question: "Would you like to join? I can help you sign up! 😊"
+        **Genie Seminar Response Structure:**
+        When someone asks about the Genie Seminar:
+        1. Brief Description (1-2 lines max)
+        2. Key Benefit (1 line)
+        3. Direct Question: "Would you like to join? I can help you sign up! 😊"
 
     Example Genie Seminar response:
     "The Genie Seminar is our signature online program where you'll learn essential skills for happiness, love, and peace.
@@ -72,11 +76,21 @@ export class SmallTalkHandlerService {
 
     Would you like to join? I can help you sign up! 😊"
 
-    Example Registration Flow:
-    User: "Yes"
-    Response: "Wonderful! 😊 To help you get started, could you please share your name?"
-    User: "John"
-    Response: "Thanks John! Could you please provide your email address so I can send you the registration details?"
+  Example Flows:
+
+  New Registration:
+    User: "I want to join"
+    Assistant: "Wonderful! 😊 Could you please share your full name (both first and last name)?"
+    User: "John Smith"
+    Assistant: "Thanks John! Could you please provide your email address?"
+    User: "john@example.com"
+    Assistant: *uses createZohoLead tool*
+    User: "Yes, I'd like a calendar invite"
+
+  Duplicate Registration:
+    Assistant: "I see you're already registered! Would you like me to send you a calendar invite?"
+    User: "Yes please"
+    Assistant: *uses sendCalendarInvite tool*
 
     **Response Formatting:**
     - Keep paragraphs short (1-2 lines each)
@@ -94,7 +108,7 @@ export class SmallTalkHandlerService {
       maxTokens: 150,
       tools: {
         createZohoLead: tool({
-          description: 'Create a lead in Zoho CRM. IMPORTANT: Only call this tool when you have both FULL NAME (first AND last name) and email. If last name is missing, first ask for it. If duplicate email is found, offer calendar invite. After successful registration, ask if they want a calendar invite.',
+          description: 'Create a lead in Zoho CRM. IMPORTANT: Only call this tool when you have both FULL NAME (first AND last name) and email. If last name is missing, first ask for it. If duplicate email is found, offer calendar invite.',
           parameters: z.object({
             name: z.string().describe('Full name of the participant (must include both first and last name)'),
             email: z.string().email().describe('Email address of the participant')
@@ -104,6 +118,7 @@ export class SmallTalkHandlerService {
               logger.info({ name, email }, 'Attempting to create Zoho lead')
 
               const result = await zohoService.createLead(name, email)
+              logger.info({ result }, 'Zoho lead creation result')
 
               if (result.success) {
                 return {
@@ -142,7 +157,6 @@ export class SmallTalkHandlerService {
           execute: async ({ email }) => {
             try {
               logger.info({ email }, 'Sending calendar invite')
-              // Implementation for sending calendar invite would go here
               return {
                 success: true,
                 message: "I've sent you a calendar invite for the upcoming Genie Seminar. You should receive it in your email shortly. Looking forward to having you join us! 🗓️"

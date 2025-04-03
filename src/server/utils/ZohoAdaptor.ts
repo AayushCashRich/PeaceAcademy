@@ -104,28 +104,30 @@ export class ZohoService {
                     }
                 }
             )
+
             const leadData = response.data.data[0]
+            logger.info({ leadData }, 'Zoho API Response')
 
-
-            if (leadData.status === 'success') {
-                logger.info({ leadId: leadData.id }, 'Successfully created Zoho lead')
-                return {
-                    success: true,
-                    leadId: leadData.id
-                }
-            } else if (leadData.code === 'DUPLICATE_DATA' && leadData.details?.api_name === 'Email') {
-                logger.info({ email, existingLeadId: leadData.details.id }, 'Duplicate email found in Zoho')
+            // Handle different response scenarios
+            if (leadData.code === 'DUPLICATE_DATA' && leadData.details?.api_name === 'Email') {
+                logger.info({ email, existingLeadId: leadData.details.id }, 'Duplicate email found')
                 return {
                     success: false,
                     isDuplicate: true,
                     existingLeadId: leadData.details.id
                 }
+            } else if (leadData.status === 'success' || leadData.id) {
+                logger.info({ leadId: leadData.id }, 'Successfully created lead')
+                return {
+                    success: true,
+                    leadId: leadData.id
+                }
             } else {
-                throw new Error(leadData.message || 'Unknown error')
+                throw new Error(leadData.message || 'Unknown error occurred')
             }
         } catch (error) {
             logger.error({ error }, 'Error creating Zoho lead')
-            throw new Error('Failed to create lead')
+            throw error
         }
     }
 }
