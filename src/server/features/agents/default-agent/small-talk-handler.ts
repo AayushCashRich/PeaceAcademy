@@ -116,36 +116,21 @@ export class SmallTalkHandlerService {
           execute: async ({ name, email }) => {
             try {
               logger.info({ name, email }, 'Attempting to create Zoho lead')
-
               const result = await zohoService.createLead(name, email)
               logger.info({ result }, 'Zoho lead creation result')
 
               if (result.success) {
-                return {
-                  success: true,
-                  message: "Excellent! I've registered you for the Genie Seminar. You'll receive a confirmation email shortly with all the details. Would you like me to send you a calendar invite for the upcoming session? 📅"
-                }
+                return "Excellent! I've registered you for the Genie Seminar. You'll receive a confirmation email shortly with all the details. Would you like me to send you a calendar invite for the upcoming session? 📅"
               } else if (result.error === 'MISSING_LAST_NAME') {
-                return {
-                  success: false,
-                  needsLastName: true,
-                  message: "I notice I don't have your last name. To properly register you, could you please provide your full name (both first and last name)?"
-                }
+                return "I notice I don't have your last name. To properly register you, could you please provide your full name (both first and last name)?"
               } else if (result.isDuplicate) {
-                return {
-                  success: false,
-                  isDuplicate: true,
-                  message: "I see you're already registered for the Genie Seminar! Would you like me to send you a calendar invite for the upcoming session? 📅"
-                }
+                return "I see you're already registered for the Genie Seminar! Would you like me to send you a calendar invite for the upcoming session? 📅"
               } else {
                 throw new Error('Unknown error occurred')
               }
             } catch (error) {
               logger.error({ error, name, email }, 'Failed to create Zoho lead')
-              return {
-                success: false,
-                message: "I apologize, but I encountered an error while processing your registration. Please try again later or contact our support team for assistance."
-              }
+              return "I apologize, but I encountered an error while processing your registration. Please try again later or contact our support team for assistance."
             }
           }
         }),
@@ -157,16 +142,10 @@ export class SmallTalkHandlerService {
           execute: async ({ email }) => {
             try {
               logger.info({ email }, 'Sending calendar invite')
-              return {
-                success: true,
-                message: "I've sent you a calendar invite for the upcoming Genie Seminar. You should receive it in your email shortly. Looking forward to having you join us! 🗓️"
-              }
+              return "I've sent you a calendar invite for the upcoming Genie Seminar. You should receive it in your email shortly. Looking forward to having you join us! 🗓️"
             } catch (error) {
               logger.error({ error, email }, 'Failed to send calendar invite')
-              return {
-                success: false,
-                message: "I apologize, but I encountered an error while sending the calendar invite. Please check your confirmation email for the session details."
-              }
+              return "I apologize, but I encountered an error while sending the calendar invite. Please check your confirmation email for the session details."
             }
           }
         })
@@ -174,7 +153,6 @@ export class SmallTalkHandlerService {
       toolChoice: 'auto'
     })
 
-    // Log the complete response object for debugging
     logger.info({ fullResponse: JSON.stringify(response) }, "Complete AI Response")
 
     // Handle the response based on its type
@@ -182,11 +160,10 @@ export class SmallTalkHandlerService {
     if (response && typeof response === 'object') {
       if ('content' in response) {
         finalMessage = (response as { content: string }).content
-      } else if ('tool_calls' in response) {
-        const toolCall = (response as { tool_calls: Array<{ function: { arguments: string } }> }).tool_calls[0]
-        if (toolCall && toolCall.function && toolCall.function.arguments) {
-          const args = JSON.parse(toolCall.function.arguments)
-          finalMessage = args.message || String(response)
+      } else if ('tool_calls' in response && Array.isArray((response as any).tool_calls)) {
+        const toolResponse = (response as any).tool_calls[0]?.output
+        if (toolResponse) {
+          finalMessage = toolResponse
         }
       }
     } else if (typeof response === 'string') {
