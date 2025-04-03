@@ -181,7 +181,7 @@ Return the structured ticket information.`
       
       return {
         success: false,
-        message: typeof result === 'string' ? result : result.toolResponse,
+        message: result,
         requiresMoreInfo: true,
         requestedInfo: ticketInfo.missingFields
       }
@@ -244,11 +244,13 @@ Return the structured ticket information.`
           temperature: 0.7,
           maxTokens: 200
         })
+        
         return {
-          message: typeof successMessage === 'string' ? successMessage : successMessage.toolResponse
+          message: successMessage
         }
       } catch (error) {
         logger.error({ error }, 'Error generating success message, using fallback')
+        
         // Fallback success message if LLM fails
         return {
           message: `Our systems are having issues, please try again.`
@@ -272,7 +274,7 @@ Return the structured ticket information.`
         })
         
         return {
-          message: typeof errorMessage === 'string' ? errorMessage : errorMessage.toolResponse
+          message: errorMessage
         }
       } catch (secondError) {
         // Log the secondary error
