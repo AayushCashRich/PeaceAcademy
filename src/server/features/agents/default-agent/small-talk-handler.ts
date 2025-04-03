@@ -6,12 +6,11 @@ import { AISdkWrapper, defaultAiSdkWrapper } from "@/server/llm/ai-sdk-wrapper"
 export class SmallTalkHandlerService {
   private aiSdkWrapper: AISdkWrapper
 
-  knowledgeHandler: KnowledgeHandlerService
+  private knowledgeHandler: KnowledgeHandlerService
 
-  constructor(
-    knowledgeHandler: KnowledgeHandlerService) {
+  constructor() {
     this.aiSdkWrapper = defaultAiSdkWrapper
-    this.knowledgeHandler = knowledgeHandler
+    this.knowledgeHandler = new KnowledgeHandlerService()
   }
 
   /**
