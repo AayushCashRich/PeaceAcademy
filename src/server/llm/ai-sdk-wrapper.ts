@@ -134,14 +134,15 @@ export class AISdkWrapper {
         this.log('Generating text', { model: model.modelId })
         const result = await generateText({
           ...params,
-          model: model
+          model: model,
+          maxSteps: 10
         })
-        
+        logger.info({ result }, 'Generated text Function')
         // Return the text from the response
         if (result.response.messages[0]?.content[0]) {
           return (result.response.messages[0].content[0] as TextPart).text as string
         }
-        return ''
+        return 'Hi'
       } catch (error) {
         this.logError(`Error generating text with model ${model.modelId}`, error)
         
