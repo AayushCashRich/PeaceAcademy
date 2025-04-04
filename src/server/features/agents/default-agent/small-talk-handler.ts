@@ -6,6 +6,31 @@ import logger from "@/server/config/pino-config"
 import { z } from "zod"
 import { zohoService } from "@/server/utils/ZohoAdaptor"
 
+interface TextContent {
+  type: 'text';
+  text: string;
+}
+
+interface ToolCallContent {
+  type: 'tool-call';
+  toolCallId: string;
+  toolName: string;
+  args: Record<string, any>;
+}
+
+interface ToolResultContent {
+  type: 'tool-result';
+  toolCallId: string;
+  toolName: string;
+  result: string;
+}
+
+interface Message {
+  role: 'assistant' | 'tool';
+  id: string;
+  content: (TextContent | ToolCallContent | ToolResultContent)[];
+}
+
 export class SmallTalkHandlerService {
   private aiSdkWrapper: AISdkWrapper
 
@@ -163,12 +188,17 @@ z
     let finalMessage = ""
 
     if (Array.isArray(response)) {
-      const assistantMessage = response.find(msg => msg.role === 'assistant');
-      if (assistantMessage && Array.isArray(assistantMessage.content)) {
-        finalMessage = assistantMessage.content
-          .filter((item: { type: string }) => item.type === 'text')
-          .map((item: { text: string }) => item.text)
-          .join('\n');
+      // Process all messages in order
+      for (const msg of response) {
+        if (msg.content && Array.isArray(msg.content)) {
+          for (const item of msg.content) {
+            if (item.type === 'text' && item.text.trim()) {
+              finalMessage = item.text;
+            } else if (item.type === 'tool-result' && item.result.trim()) {
+              finalMessage = item.result;
+            }
+          }
+        }
       }
     }
 
