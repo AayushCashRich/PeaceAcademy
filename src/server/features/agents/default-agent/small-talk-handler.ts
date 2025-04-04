@@ -8,75 +8,12 @@ import { zohoService } from "@/server/utils/ZohoAdaptor"
 
 export class SmallTalkHandlerService {
   private aiSdkWrapper: AISdkWrapper
+
   private knowledgeHandler: KnowledgeHandlerService
 
   constructor() {
     this.aiSdkWrapper = defaultAiSdkWrapper
     this.knowledgeHandler = new KnowledgeHandlerService()
-  }
-
-  // New method for creating Zoho lead tool
-  private getCreateZohoLeadTool() {
-    return tool({
-      description: 'Create a lead in Zoho CRM. IMPORTANT: Only call this tool when you have both FULL NAME (first AND last name) and email. If last name is missing, first ask for it. If duplicate email is found, offer calendar invite.',
-      parameters: z.object({
-        name: z.string().describe('Full name of the participant (must include both first and last name)'),
-        email: z.string().email().describe('Email address of the participant')
-      }),
-      execute: async ({ name, email }) => {
-        const result = await this.handleZohoLeadCreation(name, email);
-        return {
-          content: result
-        }
-      }
-    })
-  }
-
-  // New method for calendar invite tool
-  private getCalendarInviteTool() {
-    return tool({
-      description: 'Send a calendar invite for the Genie Seminar. Use this when user requests a calendar invite after successful registration or for existing registrations.',
-      parameters: z.object({
-        email: z.string().email().describe('Email address to send the calendar invite to')
-      }),
-      execute: async ({ email }) => {
-        try {
-          logger.info({ email }, 'Sending calendar invite')
-          return {
-            content: "I've sent you a calendar invite for the upcoming Genie Seminar. You should receive it in your email shortly. Looking forward to having you join us! 🗓️"
-          }
-        } catch (error) {
-          logger.error({ error, email }, 'Failed to send calendar invite')
-          return {
-            content: "I apologize, but I encountered an error while sending the calendar invite. Please check your confirmation email for the session details."
-          }
-        }
-      }
-    })
-  }
-
-  private async handleZohoLeadCreation(name: string, email: string): Promise<string> {
-    try {
-      logger.info({ name, email }, 'Attempting to create Zoho lead')
-      const result = await zohoService.createLead(name, email)
-      logger.info({ result }, 'Zoho lead creation result')
-      
-      if (result.success) {
-        logger.info({ result }, 'Zoho lead creation success')
-        return "Excellent! I've registered you for the Genie Seminar. You'll receive a confirmation email shortly with all the details. Would you like me to send you a calendar invite for the upcoming session? 📅"
-      } else if (result.error === 'MISSING_LAST_NAME') {
-        logger.info({result }, 'Zoho lead creation error missing last name')
-        return "I notice I don't have your last name. To properly register you, could you please provide your full name (both first and last name)?"
-      } else if (result.isDuplicate) {
-        logger.info({ result }, 'Zoho lead creation error duplicate')
-        return "I see you're already registered for the Genie Seminar! Would you like me to send you a calendar invite for the upcoming session? 📅"
-      } else {
-        throw new Error('Unknown error occurred')
-      }
-    } catch (error) {
-      logger.error({ error, name, email }, 'Failed to create Zoho lead')
-      return "I apologize, but I encountered an error while processing your registration. Please try again later or contact our support team for assistance."
-    }
   }
 
   /**
@@ -103,7 +40,7 @@ export class SmallTalkHandlerService {
     1. Always first check if the query matches knowledge base topics and provide accurate information from the knowledge base.
     2. Only default to Genie Seminar promotion if the query is specifically about seminars/programs or if no relevant knowledge base information exists.
     3. When user shows interest in joining (says yes, interested, etc.), collect their full name and email for registration.
-
+z
     **General Guidelines:**
     - Be concise and friendly (keep responses under 3-4 lines when possible)
     - Make responses engaging and conversational
@@ -170,104 +107,71 @@ export class SmallTalkHandlerService {
       temperature: 0.7, // Higher temperature for more conversational responses
       maxTokens: 150,
       tools: {
-        createZohoLead: this.getCreateZohoLeadTool(),
-        sendCalendarInvite: this.getCalendarInviteTool()
+        createZohoLead: tool({
+          description: 'Create a lead in Zoho CRM. IMPORTANT: Only call this tool when you have both FULL NAME (first AND last name) and email. If last name is missing, first ask for it. If duplicate email is found, offer calendar invite.',
+          parameters: z.object({
+            name: z.string().describe('Full name of the participant (must include both first and last name)'),
+            email: z.string().email().describe('Email address of the participant')
+          }),
+          execute: async ({ name, email }) => {
+            try {
+              logger.info({ name, email }, 'Attempting to create Zoho lead')
+              const result = await zohoService.createLead(name, email)
+              logger.info({ result }, 'Zoho lead creation result')
+
+              if (result.success) {
+                return "Excellent! I've registered you for the Genie Seminar. You'll receive a confirmation email shortly with all the details. Would you like me to send you a calendar invite for the upcoming session? 📅"
+              } else if (result.error === 'MISSING_LAST_NAME') {
+                return "I notice I don't have your last name. To properly register you, could you please provide your full name (both first and last name)?"
+              } else if (result.isDuplicate) {
+                return "I see you're already registered for the Genie Seminar! Would you like me to send you a calendar invite for the upcoming session? 📅"
+              } else {
+                throw new Error('Unknown error occurred')
+              }
+            } catch (error) {
+              logger.error({ error, name, email }, 'Failed to create Zoho lead')
+              return "I apologize, but I encountered an error while processing your registration. Please try again later or contact our support team for assistance."
+            }
+          }
+        }),
+        sendCalendarInvite: tool({
+          description: 'Send a calendar invite for the Genie Seminar. Use this when user requests a calendar invite after successful registration or for existing registrations.',
+          parameters: z.object({
+            email: z.string().email().describe('Email address to send the calendar invite to')
+          }),
+          execute: async ({ email }) => {
+            try {
+              logger.info({ email }, 'Sending calendar invite')
+              return "I've sent you a calendar invite for the upcoming Genie Seminar. You should receive it in your email shortly. Looking forward to having you join us! 🗓️"
+            } catch (error) {
+              logger.error({ error, email }, 'Failed to send calendar invite')
+              return "I apologize, but I encountered an error while sending the calendar invite. Please check your confirmation email for the session details."
+            }
+          }
+        })
       },
       toolChoice: 'auto'
     })
 
-    logger.info({ rawResponse: JSON.stringify(response, null, 2) }, "Raw AI Response")
+    logger.info({ fullResponse: JSON.stringify(response) }, "Complete AI Response")
 
-    interface AIResponse {
-      role?: string;
-      content?: string;
-      tool_calls?: Array<{
-        id?: string;
-        type?: string;
-        function: {
-          name: string;
-          arguments?: string;
-          result?: string;
-        };
-        output?: string;
-      }>;
-    }
-
+    // Handle the response based on its type
     let finalMessage = ''
-
-    try {
-      const aiResponse = response as AIResponse | string;
-
-      // Handle string response
-      if (typeof aiResponse === 'string') {
-        finalMessage = aiResponse;
-        logger.info({ type: 'string_response', finalMessage }, "Processed string response")
-        return { message: finalMessage };
-      }
-
-      // Handle object response
-      if (typeof aiResponse === 'object') {
-        // Handle direct content
-        if (aiResponse.content) {
-          finalMessage = aiResponse.content;
-          logger.info({ type: 'content_response', finalMessage }, "Processed content response")
-          return { message: finalMessage };
-        }
-
-        // Handle tool calls
-        if (aiResponse.tool_calls && aiResponse.tool_calls.length > 0) {
-          const toolCall = aiResponse.tool_calls[0];
-          
-          logger.info({ toolCall }, "Processing tool call")
-
-          try {
-            if (toolCall.function.name === 'createZohoLead') {
-              const args = JSON.parse(toolCall.function.arguments || '{}');
-              const toolResult = await this.handleZohoLeadCreation(args.name, args.email);
-              finalMessage = toolResult;
-              logger.info({ type: 'zoho_lead_response', finalMessage }, "Processed Zoho lead creation")
-            } 
-            else if (toolCall.function.name === 'sendCalendarInvite') {
-              const args = JSON.parse(toolCall.function.arguments || '{}');
-              // const toolResult = await this.getCalendarInviteTool().execute(args);
-              finalMessage = "I've sent you a calendar invite for the upcoming Genie Seminar. You should receive it in your email shortly. Looking forward to having you join us! 🗓️"
-              logger.info({ type: 'calendar_invite_response', finalMessage }, "Processed calendar invite")
-            }
-
-            // Only use tool.function.result if we don't have a finalMessage yet
-            if (!finalMessage && toolCall.function.result) {
-              finalMessage = toolCall.function.result;
-              logger.info({ type: 'tool_result_response', finalMessage }, "Using tool result")
-            }
-          } catch (error) {
-            logger.error({ error, toolCall }, "Error executing tool")
-            finalMessage = "I apologize, but I encountered an error while processing your request. Please try again.";
-          }
+    if (response && typeof response === 'object') {
+      if ('content' in response) {
+        finalMessage = (response as { content: string }).content
+      } else if ('tool_calls' in response && Array.isArray((response as any).tool_calls)) {
+        const toolResponse = (response as any).tool_calls[0]?.output
+        if (toolResponse) {
+          finalMessage = toolResponse
         }
       }
-
-      // If we still don't have a message, check for any other response formats
-      if (!finalMessage) {
-        if (typeof response === 'object' && 'message' in response) {
-          finalMessage = (response as { message: string }).message;
-          logger.info({ type: 'message_property_response', finalMessage }, "Using message property")
-        }
-      }
-
-      // Final fallback
-      if (!finalMessage) {
-        logger.warn({ response }, "Could not process response into a message")
-        finalMessage = "I apologize, but I couldn't process the response properly.";
-      }
-
-      logger.info({ finalMessage }, "Final processed response")
-      return { message: finalMessage };
-
-    } catch (error) {
-      logger.error({ error, response }, "Error processing AI response")
-      return { 
-        message: "I apologize, but I encountered an error while processing the response. Please try again or contact support if the issue persists." 
-      };
+    } else if (typeof response === 'string') {
+      finalMessage = response
     }
+
+    logger.info({ finalMessage }, "Processed Response")
+    return { message: finalMessage || "I apologize, but I couldn't process the response properly." }
   }
+
 }
