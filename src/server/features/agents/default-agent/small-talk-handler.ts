@@ -6,6 +6,28 @@ import logger from "@/server/config/pino-config"
 import { z } from "zod"
 import { zohoService } from "@/server/utils/ZohoAdaptor"
 
+interface ToolCallFunction {
+  name: string;
+  arguments: string;
+  result?: string;
+}
+
+interface ToolCall {
+  id: string;
+  type: 'function';
+  function: ToolCallFunction;
+}
+
+interface Message {
+  role: 'assistant' | 'function';
+  content?: string;
+  tool_calls?: ToolCall[];
+}
+
+interface AIResponse {
+  messages: Message[];
+}
+
 export class SmallTalkHandlerService {
   private aiSdkWrapper: AISdkWrapper
 
@@ -133,24 +155,10 @@ z
                 throw new Error('Unknown error occurred')
               }
 
-              return {
-                tool_calls: [{
-                  function: {
-                    name: 'createZohoLead',
-                    result: message
-                  }
-                }]
-              }
+              return message
             } catch (error) {
               logger.error({ error, name, email }, 'Failed to create Zoho lead')
-              return {
-                tool_calls: [{
-                  function: {
-                    name: 'createZohoLead',
-                    result: "I apologize, but I encountered an error while processing your registration. Please try again later or contact our support team for assistance."
-                  }
-                }]
-              }
+              return "I apologize, but I encountered an error while processing your registration. Please try again later or contact our support team for assistance."
             }
           }
         }),
@@ -162,24 +170,10 @@ z
           execute: async ({ email }) => {
             try {
               logger.info({ email }, 'Sending calendar invite')
-              return {
-                tool_calls: [{
-                  function: {
-                    name: 'sendCalendarInvite',
-                    result: "I've sent you a calendar invite for the upcoming Genie Seminar. You should receive it in your email shortly. Looking forward to having you join us! 🗓️"
-                  }
-                }]
-              }
+              return "I've sent you a calendar invite for the upcoming Genie Seminar. You should receive it in your email shortly. Looking forward to having you join us! 🗓️"
             } catch (error) {
               logger.error({ error, email }, 'Failed to send calendar invite')
-              return {
-                tool_calls: [{
-                  function: {
-                    name: 'sendCalendarInvite',
-                    result: "I apologize, but I encountered an error while sending the calendar invite. Please check your confirmation email for the session details."
-                  }
-                }]
-              }
+              return "I apologize, but I encountered an error while sending the calendar invite. Please check your confirmation email for the session details."
             }
           }
         })
@@ -187,21 +181,34 @@ z
       toolChoice: 'auto'
     })
 
-    logger.info({ fullResponse: JSON.stringify(response) }, "Complete AI Response")
+    logger.info({ response }, "Small Talk Response")
 
     // Handle the response based on its type
     let finalMessage = ''
     if (response && typeof response === 'object') {
-      if ('content' in response) {
-        finalMessage = (response as { content: string }).content
-      } else if ('tool_calls' in response && Array.isArray((response as any).tool_calls)) {
-        const toolResponse = (response as any).tool_calls[0]?.output
-        if (toolResponse) {
-          finalMessage = toolResponse
-        }
+      const aiResponse = response as AIResponse;
+      
+      if (aiResponse.messages) {
+        finalMessage = aiResponse.messages
+          .map(msg => {
+            // Handle assistant's text message
+            if (msg.content) {
+              return msg.content;
+            }
+            // Handle tool call responses
+            if (msg.tool_calls) {
+              return msg.tool_calls
+                .map(toolCall => toolCall.function.result || '')
+                .filter(Boolean)
+                .join('\n');
+            }
+            return '';
+          })
+          .filter(Boolean)
+          .join('\n');
       }
     } else if (typeof response === 'string') {
-      finalMessage = response
+      finalMessage = response;
     }
 
     logger.info({ finalMessage }, "Processed Response")
