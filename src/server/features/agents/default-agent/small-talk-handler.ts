@@ -24,11 +24,13 @@ export class SmallTalkHandlerService {
         email: z.string().email().describe('Email address of the participant')
       }),
       execute: async ({ name, email }) => {
-        return await this.handleZohoLeadCreation(name, email)
+        const result = await this.handleZohoLeadCreation(name, email);
+        return {
+          content: result
+        }
       }
     })
   }
-
 
   // New method for calendar invite tool
   private getCalendarInviteTool() {
@@ -40,16 +42,19 @@ export class SmallTalkHandlerService {
       execute: async ({ email }) => {
         try {
           logger.info({ email }, 'Sending calendar invite')
-          return "I've sent you a calendar invite for the upcoming Genie Seminar. You should receive it in your email shortly. Looking forward to having you join us! 🗓️"
+          return {
+            content: "I've sent you a calendar invite for the upcoming Genie Seminar. You should receive it in your email shortly. Looking forward to having you join us! 🗓️"
+          }
         } catch (error) {
           logger.error({ error, email }, 'Failed to send calendar invite')
-          return "I apologize, but I encountered an error while sending the calendar invite. Please check your confirmation email for the session details."
+          return {
+            content: "I apologize, but I encountered an error while sending the calendar invite. Please check your confirmation email for the session details."
+          }
         }
       }
     })
   }
 
-  
   private async handleZohoLeadCreation(name: string, email: string): Promise<string> {
     try {
       logger.info({ name, email }, 'Attempting to create Zoho lead')
@@ -215,26 +220,28 @@ export class SmallTalkHandlerService {
           
           logger.info({ toolCall }, "Processing tool call")
 
-          if (toolCall.function.name === 'createZohoLead') {
-            const args = JSON.parse(toolCall.function.arguments || '{}');
-            finalMessage = await this.handleZohoLeadCreation(args.name, args.email);
-            logger.info({ type: 'zoho_lead_response', finalMessage }, "Processed Zoho lead creation")
-          } 
-          else if (toolCall.function.name === 'sendCalendarInvite') {
-            const args = JSON.parse(toolCall.function.arguments || '{}');
-            try {
-              logger.info({ email: args.email }, 'Sending calendar invite')
-              finalMessage = "I've sent you a calendar invite for the upcoming Genie Seminar. You should receive it in your email shortly. Looking forward to having you join us! 🗓️";
+          try {
+            if (toolCall.function.name === 'createZohoLead') {
+              const args = JSON.parse(toolCall.function.arguments || '{}');
+              const toolResult = await this.handleZohoLeadCreation(args.name, args.email);
+              finalMessage = toolResult;
+              logger.info({ type: 'zoho_lead_response', finalMessage }, "Processed Zoho lead creation")
+            } 
+            else if (toolCall.function.name === 'sendCalendarInvite') {
+              const args = JSON.parse(toolCall.function.arguments || '{}');
+              // const toolResult = await this.getCalendarInviteTool().execute(args);
+              finalMessage = "I've sent you a calendar invite for the upcoming Genie Seminar. You should receive it in your email shortly. Looking forward to having you join us! 🗓️"
               logger.info({ type: 'calendar_invite_response', finalMessage }, "Processed calendar invite")
-            } catch (error) {
-              logger.error({ error, email: args.email }, 'Failed to send calendar invite')
-              finalMessage = "I apologize, but I encountered an error while sending the calendar invite. Please check your confirmation email for the session details.";
             }
-          }
 
-          if (toolCall.function.result) {
-            finalMessage = toolCall.function.result;
-            logger.info({ type: 'tool_result_response', finalMessage }, "Using tool result")
+            // Only use tool.function.result if we don't have a finalMessage yet
+            if (!finalMessage && toolCall.function.result) {
+              finalMessage = toolCall.function.result;
+              logger.info({ type: 'tool_result_response', finalMessage }, "Using tool result")
+            }
+          } catch (error) {
+            logger.error({ error, toolCall }, "Error executing tool")
+            finalMessage = "I apologize, but I encountered an error while processing your request. Please try again.";
           }
         }
       }
