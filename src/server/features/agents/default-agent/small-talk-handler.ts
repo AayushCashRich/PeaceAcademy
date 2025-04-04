@@ -133,7 +133,7 @@ z
       maxTokens: 150,
       tools: {
         createZohoLead: tool({
-          description: 'Create a lead in Zoho CRM. IMPORTANT: Only call this tool when you have both FULL NAME (first AND last name) and email. If last name is missing, first ask for it. If duplicate email is found, automatically use sendCalendarInvite tool.',
+          description: 'Create a lead in Zoho CRM. IMPORTANT: Only call this tool when you have both FULL NAME (first AND last name) and email. If last name is missing, first ask for it. If duplicate email is found, offer calendar invite.',
           parameters: z.object({
             name: z.string().describe('Full name of the participant (must include both first and last name)'),
             email: z.string().email().describe('Email address of the participant')
@@ -152,8 +152,8 @@ z
                 logger.info({ result }, 'Zoho lead creation error missing last name')
                 message = "I notice I don't have your last name. To properly register you, could you please provide your full name (both first and last name)?"
               } else if (result.isDuplicate) {
-                // Don't return a message, let the AI automatically call sendCalendarInvite
-                return null;
+                logger.info({ result }, 'Zoho lead creation error duplicate')
+                message = "I see you're already registered for the Genie Seminar! Would you like me to send you a calendar invite for the upcoming session? 📅"
               } else {
                 throw new Error('Unknown error occurred')
               }
@@ -166,14 +166,14 @@ z
           }
         }),
         sendCalendarInvite: tool({
-          description: 'Send a calendar invite for the Genie Seminar. Use this when user requests a calendar invite after successful registration or when a duplicate registration is found.',
+          description: 'Send a calendar invite for the Genie Seminar. Use this when user requests a calendar invite after successful registration or for existing registrations.',
           parameters: z.object({
             email: z.string().email().describe('Email address to send the calendar invite to')
           }),
           execute: async ({ email }) => {
             try {
               logger.info({ email }, 'Sending calendar invite')
-              return "I see you're already registered! I've gone ahead and sent you a calendar invite for the upcoming Genie Seminar. You should receive it in your email shortly. Looking forward to having you join us! 🗓️"
+              return "I've sent you a calendar invite for the upcoming Genie Seminar. You should receive it in your email shortly. Looking forward to having you join us! 🗓️"
             } catch (error) {
               logger.error({ error, email }, 'Failed to send calendar invite')
               return "I apologize, but I encountered an error while sending the calendar invite. Please check your confirmation email for the session details."
