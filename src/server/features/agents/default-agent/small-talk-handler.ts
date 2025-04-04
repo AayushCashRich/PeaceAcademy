@@ -119,18 +119,38 @@ z
               const result = await zohoService.createLead(name, email)
               logger.info({ result }, 'Zoho lead creation result')
 
+              let message: string;
               if (result.success) {
-                return "Excellent! I've registered you for the Genie Seminar. You'll receive a confirmation email shortly with all the details. Would you like me to send you a calendar invite for the upcoming session? 📅"
+                logger.info({ result }, 'Zoho lead creation success')
+                message = "Excellent! I've registered you for the Genie Seminar. You'll receive a confirmation email shortly with all the details. Would you like me to send you a calendar invite for the upcoming session? 📅"
               } else if (result.error === 'MISSING_LAST_NAME') {
-                return "I notice I don't have your last name. To properly register you, could you please provide your full name (both first and last name)?"
+                logger.info({ result }, 'Zoho lead creation error missing last name')
+                message = "I notice I don't have your last name. To properly register you, could you please provide your full name (both first and last name)?"
               } else if (result.isDuplicate) {
-                return "I see you're already registered for the Genie Seminar! Would you like me to send you a calendar invite for the upcoming session? 📅"
+                logger.info({ result }, 'Zoho lead creation error duplicate')
+                message = "I see you're already registered for the Genie Seminar! Would you like me to send you a calendar invite for the upcoming session? 📅"
               } else {
                 throw new Error('Unknown error occurred')
               }
+
+              return {
+                tool_calls: [{
+                  function: {
+                    name: 'createZohoLead',
+                    result: message
+                  }
+                }]
+              }
             } catch (error) {
               logger.error({ error, name, email }, 'Failed to create Zoho lead')
-              return "I apologize, but I encountered an error while processing your registration. Please try again later or contact our support team for assistance."
+              return {
+                tool_calls: [{
+                  function: {
+                    name: 'createZohoLead',
+                    result: "I apologize, but I encountered an error while processing your registration. Please try again later or contact our support team for assistance."
+                  }
+                }]
+              }
             }
           }
         }),
@@ -142,10 +162,24 @@ z
           execute: async ({ email }) => {
             try {
               logger.info({ email }, 'Sending calendar invite')
-              return "I've sent you a calendar invite for the upcoming Genie Seminar. You should receive it in your email shortly. Looking forward to having you join us! 🗓️"
+              return {
+                tool_calls: [{
+                  function: {
+                    name: 'sendCalendarInvite',
+                    result: "I've sent you a calendar invite for the upcoming Genie Seminar. You should receive it in your email shortly. Looking forward to having you join us! 🗓️"
+                  }
+                }]
+              }
             } catch (error) {
               logger.error({ error, email }, 'Failed to send calendar invite')
-              return "I apologize, but I encountered an error while sending the calendar invite. Please check your confirmation email for the session details."
+              return {
+                tool_calls: [{
+                  function: {
+                    name: 'sendCalendarInvite',
+                    result: "I apologize, but I encountered an error while sending the calendar invite. Please check your confirmation email for the session details."
+                  }
+                }]
+              }
             }
           }
         })
