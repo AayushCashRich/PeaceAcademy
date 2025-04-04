@@ -137,7 +137,6 @@ export class AISdkWrapper {
           model: model,
           maxSteps: 10
         })
-        logger.info({ result }, 'Generated text Function')
         // Return the text from the response
 
         // if (result.response.messages[0]?.content[0]) {

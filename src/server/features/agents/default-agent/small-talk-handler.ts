@@ -6,28 +6,6 @@ import logger from "@/server/config/pino-config"
 import { z } from "zod"
 import { zohoService } from "@/server/utils/ZohoAdaptor"
 
-interface ToolCallFunction {
-  name: string;
-  arguments: string;
-  result?: string;
-}
-
-interface ToolCall {
-  id: string;
-  type: 'function';
-  function: ToolCallFunction;
-}
-
-interface Message {
-  role: 'assistant' | 'function';
-  content?: string;
-  tool_calls?: ToolCall[];
-}
-
-interface AIResponse {
-  messages: Message[];
-}
-
 export class SmallTalkHandlerService {
   private aiSdkWrapper: AISdkWrapper
 
@@ -182,33 +160,16 @@ z
     })
 
     logger.info({ response }, "Small Talk Response")
+    let finalMessage = ""
 
-    // Handle the response based on its type
-    let finalMessage = ''
-    if (response && typeof response === 'object') {
-      const aiResponse = response as AIResponse;
-      
-      if (aiResponse.messages) {
-        finalMessage = aiResponse.messages
-          .map(msg => {
-            // Handle assistant's text message
-            if (msg.content) {
-              return msg.content;
-            }
-            // Handle tool call responses
-            if (msg.tool_calls) {
-              return msg.tool_calls
-                .map(toolCall => toolCall.function.result || '')
-                .filter(Boolean)
-                .join('\n');
-            }
-            return '';
-          })
-          .filter(Boolean)
+    if (Array.isArray(response)) {
+      const assistantMessage = response.find(msg => msg.role === 'assistant');
+      if (assistantMessage && Array.isArray(assistantMessage.content)) {
+        finalMessage = assistantMessage.content
+          .filter((item: { type: string }) => item.type === 'text')
+          .map((item: { text: string }) => item.text)
           .join('\n');
       }
-    } else if (typeof response === 'string') {
-      finalMessage = response;
     }
 
     logger.info({ finalMessage }, "Processed Response")
