@@ -24,29 +24,11 @@ export class SmallTalkHandlerService {
         email: z.string().email().describe('Email address of the participant')
       }),
       execute: async ({ name, email }) => {
-        try {
-          logger.info({ name, email }, 'Attempting to create Zoho lead')
-          const result = await zohoService.createLead(name, email)
-          logger.info({ result }, 'Zoho lead creation result')
-          if (result.success) {
-            logger.info({ result }, 'Zoho lead creation success')
-            return "Excellent! I've registered you for the Genie Seminar. You'll receive a confirmation email shortly with all the details. Would you like me to send you a calendar invite for the upcoming session? 📅"
-          } else if (result.error === 'MISSING_LAST_NAME') {
-            logger.info({result }, 'Zoho lead creation error missing last name')
-            return "I notice I don't have your last name. To properly register you, could you please provide your full name (both first and last name)?"
-          } else if (result.isDuplicate) {
-            logger.info({ result }, 'Zoho lead creation error duplicate')
-            return "I see you're already registered for the Genie Seminar! Would you like me to send you a calendar invite for the upcoming session? 📅"
-          } else {
-            throw new Error('Unknown error occurred')
-          }
-        } catch (error) {
-          logger.error({ error, name, email }, 'Failed to create Zoho lead')
-          return "I apologize, but I encountered an error while processing your registration. Please try again later or contact our support team for assistance."
-        }
+        return await this.handleZohoLeadCreation(name, email)
       }
     })
   }
+
 
   // New method for calendar invite tool
   private getCalendarInviteTool() {
@@ -65,6 +47,31 @@ export class SmallTalkHandlerService {
         }
       }
     })
+  }
+
+  
+  private async handleZohoLeadCreation(name: string, email: string): Promise<string> {
+    try {
+      logger.info({ name, email }, 'Attempting to create Zoho lead')
+      const result = await zohoService.createLead(name, email)
+      logger.info({ result }, 'Zoho lead creation result')
+      
+      if (result.success) {
+        logger.info({ result }, 'Zoho lead creation success')
+        return "Excellent! I've registered you for the Genie Seminar. You'll receive a confirmation email shortly with all the details. Would you like me to send you a calendar invite for the upcoming session? 📅"
+      } else if (result.error === 'MISSING_LAST_NAME') {
+        logger.info({result }, 'Zoho lead creation error missing last name')
+        return "I notice I don't have your last name. To properly register you, could you please provide your full name (both first and last name)?"
+      } else if (result.isDuplicate) {
+        logger.info({ result }, 'Zoho lead creation error duplicate')
+        return "I see you're already registered for the Genie Seminar! Would you like me to send you a calendar invite for the upcoming session? 📅"
+      } else {
+        throw new Error('Unknown error occurred')
+      }
+    } catch (error) {
+      logger.error({ error, name, email }, 'Failed to create Zoho lead')
+      return "I apologize, but I encountered an error while processing your registration. Please try again later or contact our support team for assistance."
+    }
   }
 
   /**
@@ -164,52 +171,96 @@ export class SmallTalkHandlerService {
       toolChoice: 'auto'
     })
 
-    logger.info({ response }, "Raw AI Response")
+    logger.info({ rawResponse: JSON.stringify(response, null, 2) }, "Raw AI Response")
 
-    // Improved response handling
-    let finalMessage = this.processAIResponse(response)
-    
-    logger.info({ finalMessage }, "Processed Response")
-    return { message: finalMessage }
-  }
-
-  // New method to process AI response
-  private processAIResponse(response: any): string {
-    if (!response) {
-      return "I apologize, but I couldn't process the response properly."
+    interface AIResponse {
+      role?: string;
+      content?: string;
+      tool_calls?: Array<{
+        id?: string;
+        type?: string;
+        function: {
+          name: string;
+          arguments?: string;
+          result?: string;
+        };
+        output?: string;
+      }>;
     }
 
-    // Handle string response
-    if (typeof response === 'string') {
-      return response
-    }
+    let finalMessage = ''
 
-    // Handle object response
-    if (typeof response === 'object') {
-      // Handle text content
-      if ('text' in response) {
-        return response.text
-      }
-      
-      // Handle content property
-      if ('content' in response) {
-        return response.content
+    try {
+      const aiResponse = response as AIResponse | string;
+
+      // Handle string response
+      if (typeof aiResponse === 'string') {
+        finalMessage = aiResponse;
+        logger.info({ type: 'string_response', finalMessage }, "Processed string response")
+        return { message: finalMessage };
       }
 
-      // Handle tool calls
-      if ('tool_calls' in response && Array.isArray(response.tool_calls)) {
-        const toolCall = response.tool_calls[0]
-        if (toolCall?.output) {
-          return toolCall.output
+      // Handle object response
+      if (typeof aiResponse === 'object') {
+        // Handle direct content
+        if (aiResponse.content) {
+          finalMessage = aiResponse.content;
+          logger.info({ type: 'content_response', finalMessage }, "Processed content response")
+          return { message: finalMessage };
+        }
+
+        // Handle tool calls
+        if (aiResponse.tool_calls && aiResponse.tool_calls.length > 0) {
+          const toolCall = aiResponse.tool_calls[0];
+          
+          logger.info({ toolCall }, "Processing tool call")
+
+          if (toolCall.function.name === 'createZohoLead') {
+            const args = JSON.parse(toolCall.function.arguments || '{}');
+            finalMessage = await this.handleZohoLeadCreation(args.name, args.email);
+            logger.info({ type: 'zoho_lead_response', finalMessage }, "Processed Zoho lead creation")
+          } 
+          else if (toolCall.function.name === 'sendCalendarInvite') {
+            const args = JSON.parse(toolCall.function.arguments || '{}');
+            try {
+              logger.info({ email: args.email }, 'Sending calendar invite')
+              finalMessage = "I've sent you a calendar invite for the upcoming Genie Seminar. You should receive it in your email shortly. Looking forward to having you join us! 🗓️";
+              logger.info({ type: 'calendar_invite_response', finalMessage }, "Processed calendar invite")
+            } catch (error) {
+              logger.error({ error, email: args.email }, 'Failed to send calendar invite')
+              finalMessage = "I apologize, but I encountered an error while sending the calendar invite. Please check your confirmation email for the session details.";
+            }
+          }
+
+          if (toolCall.function.result) {
+            finalMessage = toolCall.function.result;
+            logger.info({ type: 'tool_result_response', finalMessage }, "Using tool result")
+          }
         }
       }
 
-      // Handle message format
-      if ('message' in response) {
-        return response.message
+      // If we still don't have a message, check for any other response formats
+      if (!finalMessage) {
+        if (typeof response === 'object' && 'message' in response) {
+          finalMessage = (response as { message: string }).message;
+          logger.info({ type: 'message_property_response', finalMessage }, "Using message property")
+        }
       }
-    }
 
-    return "I apologize, but I couldn't process the response properly."
+      // Final fallback
+      if (!finalMessage) {
+        logger.warn({ response }, "Could not process response into a message")
+        finalMessage = "I apologize, but I couldn't process the response properly.";
+      }
+
+      logger.info({ finalMessage }, "Final processed response")
+      return { message: finalMessage };
+
+    } catch (error) {
+      logger.error({ error, response }, "Error processing AI response")
+      return { 
+        message: "I apologize, but I encountered an error while processing the response. Please try again or contact support if the issue persists." 
+      };
+    }
   }
 }
