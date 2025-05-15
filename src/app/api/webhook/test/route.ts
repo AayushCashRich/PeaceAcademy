@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   try {
     const body  = await req.json()
     logger.info({ body }, "Received webhook payload")
-    if (body.event === 'conversation_created') {
+    if (body.event === 'webwidget_triggered') {
       logger.info("Conversation created event triggered");
     
       const responsePayload = {
