@@ -14,45 +14,7 @@ export async function POST(req: NextRequest) {
   try {
     const body  = await req.json()
     logger.info({ body }, "Received webhook payload")
-    if (body.event === 'conversation_created') {
-      logger.info("Conversation created event triggered");
-    
-      const responsePayload = {
-        content_type: "input_select",
-        content: "How can I help you today?",
-        content_attributes: {
-          items: [
-            { title: "What is Peace-Academy?", value: "Peace-Academy-FAQ" },
-          ]
-        },
-        message_type: "outgoing",
-        private: false
-      };
-    
-      const conversationId = body.conversation.id;
-      const accountId = body.account.id;
-    
-      try {
-        const chatwootResponse = await axios.post(
-          `https://app.chatwoot.com/api/v1/accounts/${accountId}/conversations/${conversationId}/messages`,
-          responsePayload,
-          {
-            headers: {
-              'api_access_token': CHATWOOT_API_TOKEN,
-              'Content-Type': 'application/json'
-            }
-          }
-        );
-    
-        logger.info({ chatwootResponse: chatwootResponse.data }, "Sent initial greeting with options");
-        return NextResponse.json({ success: true, chatwoot_response: chatwootResponse.data });
-    
-      } catch (error) {
-        logger.error({ error }, 'Error sending initial greeting input_select');
-        return NextResponse.json({ error: 'Failed to send greeting' }, { status: 500 });
-      }
-    }
-    
+
     if(body.message_type === 'outgoing' || body.conversation.status === 'open'){
       return NextResponse.json({
         success: true,
