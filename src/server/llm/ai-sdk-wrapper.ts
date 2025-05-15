@@ -123,7 +123,7 @@ export class AISdkWrapper {
   /**
    * Generates text with the AI model, falling back to the secondary model if needed
    */
-  async generateText(params: TextGenerationParams): Promise<string> {
+  async generateText(params: TextGenerationParams): Promise<any> {
     let attempts = 0
     const maxAttempts = (this.config.maxRetries || 0) + 1
 
@@ -134,14 +134,16 @@ export class AISdkWrapper {
         this.log('Generating text', { model: model.modelId })
         const result = await generateText({
           ...params,
-          model: model
+          model: model,
+          maxSteps: 10
         })
-        
         // Return the text from the response
-        if (result.response.messages[0]?.content[0]) {
-          return (result.response.messages[0].content[0] as TextPart).text as string
-        }
-        return ''
+
+        // if (result.response.messages[0]?.content[0]) {
+        //   return (result.response.messages[0].content[0] as TextPart).text as string
+        // }
+        // return 'Hi'
+        return result.response.messages;
       } catch (error) {
         this.logError(`Error generating text with model ${model.modelId}`, error)
         

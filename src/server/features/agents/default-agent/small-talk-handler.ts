@@ -6,6 +6,31 @@ import logger from "@/server/config/pino-config"
 import { z } from "zod"
 import { zohoService } from "@/server/utils/ZohoAdaptor"
 
+interface TextContent {
+  type: 'text';
+  text: string;
+}
+
+interface ToolCallContent {
+  type: 'tool-call';
+  toolCallId: string;
+  toolName: string;
+  args: Record<string, any>;
+}
+
+interface ToolResultContent {
+  type: 'tool-result';
+  toolCallId: string;
+  toolName: string;
+  result: string;
+}
+
+interface Message {
+  role: 'assistant' | 'tool';
+  id: string;
+  content: (TextContent | ToolCallContent | ToolResultContent)[];
+}
+
 export class SmallTalkHandlerService {
   private aiSdkWrapper: AISdkWrapper
 
@@ -40,7 +65,7 @@ export class SmallTalkHandlerService {
     1. Always first check if the query matches knowledge base topics and provide accurate information from the knowledge base.
     2. Only default to Genie Seminar promotion if the query is specifically about seminars/programs or if no relevant knowledge base information exists.
     3. When user shows interest in joining (says yes, interested, etc.), collect their full name and email for registration.
-
+z
     **General Guidelines:**
     - Be concise and friendly (keep responses under 3-4 lines when possible)
     - Make responses engaging and conversational
@@ -119,15 +144,21 @@ export class SmallTalkHandlerService {
               const result = await zohoService.createLead(name, email)
               logger.info({ result }, 'Zoho lead creation result')
 
+              let message: string;
               if (result.success) {
-                return "Excellent! I've registered you for the Genie Seminar. You'll receive a confirmation email shortly with all the details. Would you like me to send you a calendar invite for the upcoming session? 📅"
+                logger.info({ result }, 'Zoho lead creation success')
+                message = "Excellent! I've registered you for the Genie Seminar. You'll receive a confirmation email shortly with all the details. Would you like me to send you a calendar invite for the upcoming session? 📅"
               } else if (result.error === 'MISSING_LAST_NAME') {
-                return "I notice I don't have your last name. To properly register you, could you please provide your full name (both first and last name)?"
+                logger.info({ result }, 'Zoho lead creation error missing last name')
+                message = "I notice I don't have your last name. To properly register you, could you please provide your full name (both first and last name)?"
               } else if (result.isDuplicate) {
-                return "I see you're already registered for the Genie Seminar! Would you like me to send you a calendar invite for the upcoming session? 📅"
+                logger.info({ result }, 'Zoho lead creation error duplicate')
+                message = "I see you're already registered for the Genie Seminar! Would you like me to send you a calendar invite for the upcoming session? 📅"
               } else {
                 throw new Error('Unknown error occurred')
               }
+
+              return message
             } catch (error) {
               logger.error({ error, name, email }, 'Failed to create Zoho lead')
               return "I apologize, but I encountered an error while processing your registration. Please try again later or contact our support team for assistance."
@@ -153,21 +184,22 @@ export class SmallTalkHandlerService {
       toolChoice: 'auto'
     })
 
-    logger.info({ fullResponse: JSON.stringify(response) }, "Complete AI Response")
+    logger.info({ response }, "Small Talk Response")
+    let finalMessage = ""
 
-    // Handle the response based on its type
-    let finalMessage = ''
-    if (response && typeof response === 'object') {
-      if ('content' in response) {
-        finalMessage = (response as { content: string }).content
-      } else if ('tool_calls' in response && Array.isArray((response as any).tool_calls)) {
-        const toolResponse = (response as any).tool_calls[0]?.output
-        if (toolResponse) {
-          finalMessage = toolResponse
+    if (Array.isArray(response)) {
+      // Process all messages in order
+      for (const msg of response) {
+        if (msg.content && Array.isArray(msg.content)) {
+          for (const item of msg.content) {
+            if (item.type === 'text' && item.text.trim()) {
+              finalMessage = item.text;
+            } else if (item.type === 'tool-result' && item.result.trim()) {
+              finalMessage = item.result;
+            }
+          }
         }
       }
-    } else if (typeof response === 'string') {
-      finalMessage = response
     }
 
     logger.info({ finalMessage }, "Processed Response")
